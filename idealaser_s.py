@@ -113,16 +113,17 @@ class SInput(SBlock):
         super().__init__(x, y)
         self.facing = direction
         if level == 't':
-            self.state = True
+            self.original_state = True
         else:
-            self.state = False
+            self.original_state = False
+        self.state = self.original_state
         self.cost = cost_dict['i']
         self.seq = sequence
         self.seq_index = 0
         self.seq_count = 0
     
     def __repr__(self):
-        return f'Input{*self.coordinates, self.facing, self.state, self.seq}'
+        return f'Input{*self.coordinates, self.facing, self.original_state, self.seq}'
     
     def step(self):
         if self.state:
@@ -432,7 +433,8 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                         del block_coordinates[user_coordinates]
                     elif user_input[0] == 'toggle':
                         if type(this_block) == SInput:
-                            this_block.state = not this_block.state
+                            this_block.original_state = not this_block.original_state
+                            this_block.state = this_block.original_state
                         else:
                             print("Block is not an input block.")
                     else:
@@ -635,6 +637,7 @@ within.
                 if type(block) == SInput:
                     block.seq_index = 0
                     block.seq_count = 0
+                    block.state = block.original_state
             return
         elif option == 'q':
             return 'q'
