@@ -20,23 +20,38 @@ correspondingly.
 
 6. Display tiles for the player.
 """
+# todo add cleanliness metric: clean solutions do not have lasers escaping into infinity, vice versa
+# todo add strictness? e.g. some solutions may flash the wrong output in the short run but at infinity they are correct
+#  (may not be good because if some output should be true, at cycle 1 it is false already; but interesting exercise)
+# todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
+#  because they can be used as splitter alternatives (reuse incoming laser)
+# todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
+# todo add new block, dual-split, which splits only in either horizontal or vertical axis; don't add new generators like
+#  double-sided generator, use these blocks to split them
 from os import mkdir, path, listdir
 from pickle import dump, load
 from random import random
 from math import e
 from idealaser_globals import facing_dict, opposite_face_dict, cost_dict
-try:
-    mkdir('IDEALaser Saves')
-except FileExistsError:
-    pass
-try:
-    mkdir('IDEALaser Saves/Simultaneous Saves')
-except FileExistsError:
-    pass
-block_coordinates = {}
-pulse_list = []
-pulse_coordinates = {}
-cycle_count = 0
+
+
+def init_globals():
+    # block_coordinates = {}
+    # pulse_list = []
+    # pulse_coordinates = {}
+    # cycle_count = 0
+    return {}, [], {}, 0  # must be assigned to variable names as above
+
+
+def make_folders():
+    try:
+        mkdir('IDEALaser Saves')
+    except FileExistsError:
+        pass
+    try:
+        mkdir('IDEALaser Saves/Simultaneous Saves')
+    except FileExistsError:
+        pass
 
 
 class SPulse:
@@ -44,9 +59,9 @@ class SPulse:
         self.coordinates = x, y
         self.facing = direction
         pulse_list.append(self)
-        try:
+        if self.coordinates in pulse_coordinates:
             pulse_coordinates[self.coordinates].append(self.facing)
-        except KeyError:
+        else:
             pulse_coordinates[self.coordinates] = [self.facing]
     
     def __repr__(self):
@@ -67,9 +82,9 @@ class SPulse:
         else:  # self.facing == 'd'
             self.coordinates = self.coordinates[0] + 1, self.coordinates[1]
         # Add new entry in coordinates dict
-        try:
+        if self.coordinates in pulse_coordinates:
             pulse_coordinates[self.coordinates].append(self.facing)
-        except KeyError:
+        else:
             pulse_coordinates[self.coordinates] = [self.facing]
 
 
@@ -167,14 +182,14 @@ class SRedirector(SBlock):
     def prestep(self):
         self.fire = False
         if self.state:
-            try:
+            if self.next_coordinates in block_coordinates:
                 if type(block_coordinates[self.next_coordinates]) != SBridge:
                     self.fire = True
-            except KeyError:
-                try:
+            else:
+                if self.next_coordinates in pulse_coordinates:
                     if opposite_face_dict[self.facing] not in pulse_coordinates[self.next_coordinates]:
                         self.fire = True
-                except KeyError:
+                else:
                     self.fire = True
     
     def step(self):
@@ -208,17 +223,17 @@ class SSplitter(SBlock):
         self.fire_list = [False, False, False, False]
         if self.state:
             for i in 0, 1, 2, 3:
-                try:
+                if self.next_coordinates[i] in block_coordinates:
                     if block_coordinates[self.next_coordinates[i]] != SBridge:
                         self.fire_list[i] = True
-                except KeyError:
+                else:
                     pass
             for i in 0, 1, 2, 3:
                 if not self.fire_list[i]:
-                    try:
+                    if self.reference[i][1] in pulse_coordinates:
                         if opposite_face_dict[self.reference[i][0]] not in pulse_coordinates[self.reference[i][1]]:
                             self.fire_list[i] = True
-                    except KeyError:
+                    else:
                         self.fire_list[i] = True
     
     def step(self):
@@ -323,7 +338,7 @@ def tile_print():
                 else:  # 3-digit row numbers
                     print(row, end='')
             else:
-                try:
+                if (col, row) in block_coordinates:
                     block = block_coordinates[(col, row)]
                     block_type = type(block)
                     if block_type == SGenerator:
@@ -344,23 +359,23 @@ def tile_print():
                         else:
                             print("Pf", end='')
                     elif block_type == SOutput:
-                        try:
+                        if (col, row) in pulse_coordinates:
                             if len(pulse_coordinates[(col, row)]) == 1:
                                 print("Ot", end='')
                             else:
                                 print("O#", end='')
-                        except KeyError:
+                        else:
                             print("Of", end='')
                     elif block_type == SBlocker:
-                        try:
+                        if (col, row) in pulse_coordinates:
                             if len(pulse_coordinates[(col, row)]) == 1:
                                 print("Lt", end='')
                             else:
                                 print("L#", end='')
-                        except KeyError:
+                        else:
                             print("Lf", end='')
                     elif block_type == SBridge:
-                        try:
+                        if (col, row) in pulse_coordinates:
                             direction_list = pulse_coordinates[(col, row)]
                             vertical = 0  # 0: no pulse, 1: no collision, 2: collision
                             horizontal = 0  # same
@@ -379,7 +394,8 @@ def tile_print():
                             elif 'd' in direction_list:
                                 horizontal = 1
                             if vertical == 0:
-                                # This case will be caught above; included for consistency
+                                # Below case will be caught when (col, row) in pulse_coordinates == False, but it is
+                                # included for consistency
                                 # if horizontal == 0:
                                 #     print("Bf", end='')
                                 if horizontal == 1:
@@ -400,15 +416,15 @@ def tile_print():
                                     print("Bx", end='')
                                 elif horizontal == 2:
                                     print("B#", end='')
-                        except KeyError:
+                        else:
                             print("Bf", end='')
-                except KeyError:  # no block at coordinates, find pulses at coordinates
-                    try:
+                else:  # no block at coordinates, find pulses at coordinates
+                    if (col, row) in pulse_coordinates:
                         if len(pulse_coordinates[(col, row)]) == 1:
                             print(f"{facing_dict[pulse_coordinates[(col, row)][0]]} ", end='')
                         else:
                             print("# ", end='')
-                    except KeyError:
+                    else:
                         print("  ", end='')
             if col != max_x:
                 print("|", end='')
@@ -427,7 +443,7 @@ def main_menu():
 Enter a block ID with required arguments to add it to solution (see help1), or enter a command: ''').split()
             try:
                 user_coordinates = (int(user_input[1]), int(user_input[2]))
-                try:  # Commands for existing blocks
+                if user_coordinates in block_coordinates:  # Commands for existing blocks
                     this_block = block_coordinates[user_coordinates]
                     if user_input[0] == 'del':
                         del block_coordinates[user_coordinates]
@@ -439,7 +455,7 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                             print("Block is not an input block.")
                     else:
                         print("Coordinates already occupied by block.")
-                except KeyError:  # no existing block found at coordinates, thus user wants to add a block
+                else:  # no existing block found at coordinates, thus user wants to add a block
                     # Commands for adding new blocks
                     if user_input[0] == 'g':
                         if user_input[3] in ('w', 'a', 's', 'd'):
@@ -479,33 +495,34 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                 elif user_input[0] == 'show_block':
                     print(block_coordinates.values())
                 elif user_input[0] == 'save':
+                    make_folders()
                     save_name = input("Enter file name (enter nothing to escape): ").strip()
                     if save_name != '':
                         for char in save_name:
-                            if not char.isalnum() and char not in ('-', '_'):
-                                print("Invalid filename. Allowed: a-z, A-Z, 0-9, '-', '_'")
+                            if not char.isalnum() and char not in ('-', '_', ' '):
+                                print("Invalid filename. Allowed: a-z, A-Z, 0-9, '-', '_', space")
                                 break
                         else:
                             flag = False
-                            if path.exists(file_path := f'IDEALaser Saves\\Simultaneous Saves\\{save_name}.txt'):
+                            if path.exists(file_path := f'IDEALaser Saves\\Simultaneous Saves\\{save_name}.pickle'):
                                 if input("File already exists. Overwrite? (y: yes, anything: back): ") == 'y':
                                     flag = True
                             else:
                                 flag = True
                             if flag:
-                                dump(block_coordinates, open(file_path, 'wb'))
+                                with open(file_path, 'wb') as f:
+                                    dump(block_coordinates, f)
                 elif user_input[0] == 'load':
+                    make_folders()
                     load_list = listdir('IDEALaser Saves\\Simultaneous Saves')
                     print()
                     for file in load_list:
                         print(file)
                     print()
-                    filename = input("Enter file name (without .txt), or an invalid name to escape: ") + '.txt'
+                    filename = input("Enter file name (without .pickle), or an invalid name to escape: ") + '.pickle'
                     if filename in load_list:
-                        try:
-                            block_coordinates = load(open(f'IDEALaser Saves\\Simultaneous Saves\\{filename}', 'rb'))
-                        except:  # TODO specify error(s)?
-                            print("Error loading save. (Did you edit the file?)")
+                        with open(f'IDEALaser Saves\\Simultaneous Saves\\{filename}', 'rb') as f:
+                            block_coordinates = load(f)
                 elif user_input[0] == 'q':
                     return 'q'
                 elif user_input[0] == 'help1':
@@ -516,7 +533,7 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
 'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), optional numbers for oscillation,
-    e.g. 'i 1 2 d t 1'
+    e.g. 'i 1 2 d t 1', 1 indicating it alternates between firing and not firing every cycle
 'o': Output ({cost_dict['o']}), coordinates, e.g. 'o 1 2'
 
 Other Commands:
@@ -553,20 +570,24 @@ def run_solution():
             # Append to new lists pulses that are not colliding
             max_x, min_x, max_y, min_y = edge()
             for k, v in pulse_coordinates.items():
-                try:  # if no error, means block at coordinate, check if bridge (and related criteria)
+                if k in block_coordinates:  # if no error, means block at coordinate, check if bridge (and related criteria)
                     block = block_coordinates[k]
                     if type(block) == SBridge:
+                        if k in new_pulse_coordinates:
+                            npc_has_k = True
+                        else:
+                            npc_has_k = False
                         if ('w' in v) ^ ('s' in v):  # alternative for XOR is bool() != bool()
                             for pulse in pulse_list:
                                 if pulse.coordinates == k and pulse.facing in ('w', 's'):
                                     new_pulses.append(pulse)
                                     break
-                            try:
+                            if npc_has_k:
                                 if 'w' in v:
                                     new_pulse_coordinates[k].append('w')
                                 else:
                                     new_pulse_coordinates[k].append('s')
-                            except KeyError:
+                            else:
                                 if 'w' in v:
                                     new_pulse_coordinates[k] = ['w']
                                 else:
@@ -576,17 +597,17 @@ def run_solution():
                                 if pulse.coordinates == k and pulse.facing in ('a', 'd'):
                                     new_pulses.append(pulse)
                                     break
-                            try:
+                            if npc_has_k:
                                 if 'a' in v:
                                     new_pulse_coordinates[k].append('a')
                                 else:
                                     new_pulse_coordinates[k].append('d')
-                            except KeyError:
+                            else:
                                 if 'a' in v:
                                     new_pulse_coordinates[k] = ['a']
                                 else:
                                     new_pulse_coordinates[k] = ['d']
-                except KeyError:  # no block found at coordinates, check if only one pulse and not out of board range
+                else:  # no block found at coordinates, check if only one pulse and not out of board range
                     if len(v) == 1 and k[0] in range(min_x + 1, max_x) and k[1] in range(min_y + 1, max_y):
                         for pulse in pulse_list:
                             if pulse.coordinates == k:
@@ -645,12 +666,14 @@ within.
             print("Unrecognised command.")
 
 
-print('''Welcome to IdeaLaser (simultaneous evaluation version).
-Challenge: create logical gates using the tools provided.''')
-while True:
-    if main_menu() == 'q':
-        break
-    else:
-        tile_print()
-        if run_solution() == 'q':
+if __name__ == '__main__':
+    block_coordinates, pulse_list, pulse_coordinates, cycle_count = init_globals()
+    print('''Welcome to IdeaLaser (simultaneous evaluation version).
+    Challenge: create logical gates using the tools provided.''')
+    while True:
+        if main_menu() == 'q':
             break
+        else:
+            tile_print()
+            if run_solution() == 'q':
+                break

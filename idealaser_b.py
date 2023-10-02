@@ -222,37 +222,29 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                     save_name = input("Enter file name (enter nothing to escape): ").strip()
                     if save_name != '':
                         for char in save_name:
-                            if not char.isalnum() and char not in ('-', ' '):
-                                print("Invalid filename. Allowed: a-z, A-Z, 0-9, '-', space")
+                            if not char.isalnum() and char not in ('-', '_', ' '):
+                                print("Invalid filename. Allowed: a-z, A-Z, 0-9, '-', '_', space")
                                 break
                         else:
                             flag = False
-                            if path.exists(file_path := f'IDEALaser Saves\\Blocktime Saves\\{save_name}.txt'):
+                            if path.exists(file_path := f'IDEALaser Saves\\Blocktime Saves\\{save_name}.pickle'):
                                 if input("File already exists. Overwrite? (y: yes, anything: back): ") == 'y':
                                     flag = True
                             else:
                                 flag = True
                             if flag:
-                                dump(block_coordinates, open(file_path, 'wb'))
+                                with open(file_path, 'wb') as f:
+                                    dump(block_coordinates, f)
                 elif user_input[0] == 'load':
                     load_list = listdir('IDEALaser Saves\\Blocktime Saves')
                     print()
                     for file in load_list:
                         print(file)
                     print()
-                    filename = input("Enter file name (without .txt), or an invalid name to escape: ") + '.txt'
+                    filename = input("Enter file name (without .pickle), or an invalid name to escape: ") + '.pickle'
                     if filename in load_list:
-                        try:
-                            temp = load(open(f'IDEALaser Saves\\Blocktime Saves\\{filename}', 'rb'))
-                            if type(temp) == list:
-                                print("Old save format detected. Converting to new save format.")
-                                temp2 = {}
-                                for block in temp:
-                                    temp2[block.coordinates] = block
-                                temp = temp2
-                            block_coordinates = temp
-                        except:  # TODO specify error(s)?
-                            print("Error loading save. (Did you edit the file?)")
+                        with open(f'IDEALaser Saves\\Blocktime Saves\\{filename}', 'rb') as f:
+                            block_coordinates = load(f)
                 elif user_input[0] == 'q':
                     return 'q'
                 elif user_input[0] == 'help1':
