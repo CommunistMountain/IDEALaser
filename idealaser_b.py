@@ -7,7 +7,7 @@ will not activate it. Splitters' faces have 3 modes: open, connected and closed.
 and the first time 1 or more sides receive lasers, those sides become connected while the other sides become closed,
 which fire lasers, and do not consider lasers firing back at it to activate it; when the splitter stops receiving lasers
 from one side, that side becomes closed and starts firing lasers; when all sides become closed, all sides become open
-instead (i.e. it stopped receiving any laser which activates it))
+instead (i.e. it stopped receiving any laser which activates it)) TODO update this paragraph for Dual?
 
 Lasers are classified into 2 groups: stable (those which are already hitting a block, another laser or going to
 infinity) and unstable (unformed lasers, i.e. going to be emitted this cycle, or half-formed lasers)
@@ -108,25 +108,44 @@ class BInput(BBlock):
         return f'Input{*self.coordinates, self.facing, self.state}'
 
 
-class BRedirector(BBlock):
+class BEmitter(BBlock):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.facing = tuple()
+        self.state = False
+
+
+class BRedirector(BEmitter):
     def __init__(self, x, y, direction):
         super().__init__(x, y)
-        self.facing = direction
-        self.state = False
+        self.facing = (direction,)
         self.cost = cost_dict['r']
     
     def __repr__(self):
         return f'Redirector{*self.coordinates, self.facing}'
 
 
-class BQuadSplitter(BBlock):
+class BDualSplitter(BEmitter):
+    def __init__(self, x, y, direction):
+        super().__init__(x, y)
+        if direction in ('w', 's', 'v'):
+            self.facing = 'w', 's'
+        else:  # 'a' or 'd' or 'h'
+            self.facing = 'a', 'd'
+        self.cost = cost_dict['d']
+    
+    def __repr__(self):
+        return f'Dual-Splitter{*self.coordinates, self.facing}'
+
+
+class BQuadSplitter(BEmitter):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.state = False
+        self.facing = 'w', 'a', 's', 'd'
         self.cost = cost_dict['q']
     
     def __repr__(self):
-        return f'QuadSplitter{self.coordinates}'
+        return f'Quad-Splitter{self.coordinates}'
 
 
 class BOutput(BBlock):
@@ -205,6 +224,11 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                             BRedirector(*user_coordinates, user_input[3])
                         else:
                             print("Invalid direction provided.")
+                    elif user_input[0] == 'd':
+                        if user_input[3] in ('w', 'a', 's', 'd', 'h', 'v'):
+                            BDualSplitter(*user_coordinates, user_input[3])
+                        else:
+                            print("Invalid direction provided.")
                     elif user_input[0] == 'q':
                         BQuadSplitter(*user_coordinates)
                     elif user_input[0] == 'l':
@@ -264,7 +288,8 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
-'q': QuadSplitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
+'d': Dual-Splitter ({cost_dict['d']}), coordinates and direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
+'q': Quad-Splitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
 'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), e.g. 'i 1 2 d t'

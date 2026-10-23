@@ -160,92 +160,85 @@ class SInput(SBlock):
                     self.seq_index = 0
 
 
-class SRedirector(SBlock):
+class SEmitter(SBlock):  # superclass of redirectors and splitters
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.state = False
+        if direction == 'w':
+        self.facing = tuple()
+        self.next_coordinates = tuple()
+        self.fire_list = []
+    
+    def prestep(self):
+        self.fire_list = [False for _ in range(len(self.facing))]
+        if self.state:
+            for i in range(len(self.facing)):
+                if self.next_coordinates[i] in block_coordinates and type(block_coordinates[self.next_coordinates[i]]) is not SBridge:
+                    self.fire_list[i] = True
+                else:
+                    if self.next_coordinates[i] in pulse_coordinates:
+                        if opposite_face_dict[self.facing[i]] not in pulse_coordinates[self.next_coordinates[i]]:
+                            self.fire_list[i] = True
+                    else:
+                        self.fire_list[i] = True
+
+    def step(self):
+        for i in range(len(self.facing)):
+            if self.fire_list[i]:
+                SPulse(*self.next_coordinates[i], self.facing[i])
+
+    def poststep(self):
+        if self.coordinates in pulse_coordinates:
+            self.state = True
+        else:
+            self.state = False
+
+
+class SRedirector(SEmitter):
     def __init__(self, x, y, direction):
         super().__init__(x, y)
-        self.facing = direction
-        self.state = False
-        self.fire = False
+        self.facing = (direction,)
         if direction == 'w':
-            self.next_coordinates = x, y + 1
+            self.next_coordinates = ((x, y + 1),)
         elif direction == 'a':
-            self.next_coordinates = x - 1, y
+            self.next_coordinates = ((x - 1, y),)
         elif direction == 's':
-            self.next_coordinates = x, y - 1
+            self.next_coordinates = ((x, y - 1),)
         else:  # direction == 'd'
-            self.next_coordinates = x + 1, y
+            self.next_coordinates = ((x + 1, y),)
+        self.fire = [False]
         self.cost = cost_dict['r']
     
     def __repr__(self):
         return f'Redirector{*self.coordinates, self.facing}'
-    
-    def prestep(self):
-        self.fire = False
-        if self.state:
-            if self.next_coordinates in block_coordinates:
-                if type(block_coordinates[self.next_coordinates]) is not SBridge:
-                    self.fire = True
-            else:
-                if self.next_coordinates in pulse_coordinates:
-                    if opposite_face_dict[self.facing] not in pulse_coordinates[self.next_coordinates]:
-                        self.fire = True
-                else:
-                    self.fire = True
-    
-    def step(self):
-        if self.fire:
-            SPulse(*self.next_coordinates, self.facing)
-    
-    def poststep(self):
-        if self.coordinates in pulse_coordinates:
-            self.state = True
-        else:
-            self.state = False
 
 
-class SQuadSplitter(SBlock):
+class SDualSplitter(SEmitter):
+    def __init__(self, x, y, direction):
+        super().__init__(x, y)
+        if direction in ('w', 's', 'v'):
+            self.facing = 'w', 's'
+            self.next_coordinates = (x, y + 1), (x, y - 1)
+        else:  # 'a' or 'd' or 'h'
+            self.facing = 'a', 'd'
+            self.next_coordinates = (x - 1, y), (x + 1, y)
+        self.fire_list = [False, False]
+        self.cost = cost_dict['d']
+    
+    def __repr__(self):
+        return f'Dual-Splitter{*self.coordinates, self.facing}'
+
+
+class SQuadSplitter(SEmitter):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.w = x, y + 1
-        self.a = x - 1, y
-        self.s = x, y - 1
-        self.d = x + 1, y
-        self.next_coordinates = (self.w, self.a, self.s, self.d)
-        self.reference = ('w', self.w), ('a', self.a), ('s', self.s), ('d', self.d)
-        self.state = False
-        self.fire_list = [False, False, False, False]  # wasd
+        self.facing = 'w', 'a', 's', 'd'
+        self.next_coordinates = (x, y + 1), (x - 1, y), (x, y - 1), (x + 1, y)
+        self.fire_list = [False, False, False, False]
         self.cost = cost_dict['q']
     
     def __repr__(self):
-        return f'QuadSplitter{self.coordinates}'
-    
-    def prestep(self):
-        self.fire_list = [False, False, False, False]
-        if self.state:
-            for i in 0, 1, 2, 3:
-                if self.next_coordinates[i] in block_coordinates:
-                    if block_coordinates[self.next_coordinates[i]] != SBridge:
-                        self.fire_list[i] = True
-                else:
-                    pass
-            for i in 0, 1, 2, 3:
-                if not self.fire_list[i]:
-                    if self.reference[i][1] in pulse_coordinates:
-                        if opposite_face_dict[self.reference[i][0]] not in pulse_coordinates[self.reference[i][1]]:
-                            self.fire_list[i] = True
-                    else:
-                        self.fire_list[i] = True
-    
-    def step(self):
-        for i in 0, 1, 2, 3:
-            if self.fire_list[i]:
-                SPulse(*self.reference[i][1], self.reference[i][0])
-    
-    def poststep(self):
-        if self.coordinates in pulse_coordinates:
-            self.state = True
-        else:
-            self.state = False
+        return f'Quad-Splitter{self.coordinates}'
 
 
 class SOutput(SBlock):
@@ -350,9 +343,14 @@ def tile_print():
                             print("If", end='')
                     elif block_type == SRedirector:
                         if block.state:
-                            print(f"{block.facing.upper()}t", end='')
+                            print(f"{block.facing[0].upper()}t", end='')
                         else:
-                            print(f"{block.facing.upper()}f", end='')
+                            print(f"{block.facing[0].upper()}f", end='')
+                    elif block_type == SDualSplitter:
+                        if block.state:
+                            print(f"{'V' if block.facing == ('w', 's') else 'H'}t", end='')
+                        else:
+                            print(f"{'V' if block.facing == ('w', 's') else 'H'}f", end='')
                     elif block_type == SQuadSplitter:
                         if block.state:
                             print("Qt", end='')
@@ -480,6 +478,11 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                             SRedirector(*user_coordinates, user_input[3])
                         else:
                             print("Invalid direction provided.")
+                    elif user_input[0] == 'd':
+                        if user_input[3] in ('w', 'a', 's', 'd', 'h', 'v'):
+                            SDualSplitter(*user_coordinates, user_input[3])
+                        else:
+                            print("Invalid direction provided.")
                     elif user_input[0] == 'q':
                         SQuadSplitter(*user_coordinates)
                     elif user_input[0] == 'l':
@@ -542,7 +545,8 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
-'q': QuadSplitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
+'d': Dual-Splitter ({cost_dict['d']}), coordinates and direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
+'q': Quad-Splitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
 'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), optional numbers for oscillation,
@@ -574,7 +578,7 @@ def run_solution():
         option = input('''\n\n'r': Step
 'symbols': Show symbol meanings in solution
 'show_laser': Show laser list (not usable in main menu)
-'esc': Go back to main menu (clears lasers but does not clear blocks; use 'clear' later): ''')
+'esc': Go back to main menu (clears lasers but does not clear blocks): ''')
         if option == 'r':
             # Step 1
             for block in block_coordinates.values():
@@ -592,7 +596,7 @@ def run_solution():
                             npc_has_k = True
                         else:
                             npc_has_k = False
-                        if ('w' in v) ^ ('s' in v):  # alternative for XOR is bool() != bool()
+                        if ('w' in v) != ('s' in v):
                             for pulse in pulse_list:
                                 if pulse.coordinates == k and pulse.facing in ('w', 's'):
                                     new_pulses.append(pulse)
@@ -607,7 +611,7 @@ def run_solution():
                                     new_pulse_coordinates[k] = ['w']
                                 else:
                                     new_pulse_coordinates[k] = ['s']
-                        if ('a' in v) ^ ('d' in v):
+                        if ('a' in v) != ('d' in v):
                             for pulse in pulse_list:
                                 if pulse.coordinates == k and pulse.facing in ('a', 'd'):
                                     new_pulses.append(pulse)
@@ -647,9 +651,9 @@ def run_solution():
         elif option == 'symbols':
             print('''
 Each cell is represented by 2 characters. The first character is either a letter representing a block (key under
-'help', except the redirector, which is represented by 'WASD' showing its direction), or one of these: (^ > v < #), the
-first 4 representing lasers and their direction, the last representing where 2+ lasers collided. The second character is
-used by all blocks, and shows the different states they can be in.
+'help', except the redirector and dual-splitter, which are represented by 'WASD', and 'HV' respectively showing their
+directions), or one of these: (^ > v < #), the first 4 representing lasers and their direction, the last representing
+where 2+ lasers collided. The second character is used by all blocks, and shows the different states they can be in.
 
 Redirector/Splitter: 't' when hit by laser, 'f' when not.
 Blocker/Output: 't' when hit by a single laser, '#' when hit by multiple lasers (output still considered to be in 'on'
