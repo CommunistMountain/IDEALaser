@@ -164,7 +164,6 @@ class SEmitter(SBlock):  # superclass of redirectors and splitters
     def __init__(self, x, y):
         super().__init__(x, y)
         self.state = False
-        if direction == 'w':
         self.facing = tuple()
         self.next_coordinates = tuple()
         self.fire_list = []
