@@ -165,8 +165,8 @@ def main_menu():
     while True:
         try:
             user_input = input('''\n'run': run solution (does not begin stepping, just displays initial state)
-'help1': full list of block IDs (with examples on how to add to solution) and commands
-Enter a block ID with required arguments to add it to solution (see help1), or enter a command: ''').split()
+'help': full list of block IDs (with examples on how to add to solution) and commands
+Enter a block ID with required arguments to add it to solution (see help), or enter a command: ''').split()
             try:
                 user_coordinates = (int(user_input[1]), int(user_input[2]))
                 try:  # Commands for existing blocks
@@ -174,7 +174,7 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                     if user_input[0] == 'del':
                         del block_coordinates[user_coordinates]
                     elif user_input[0] == 'toggle':
-                        if type(this_block) == BInput:
+                        if type(this_block) is BInput:
                             this_block.state = not this_block.state
                         else:
                             print("Block is not an input block.")
@@ -247,7 +247,7 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                             block_coordinates = load(f)
                 elif user_input[0] == 'q':
                     return 'q'
-                elif user_input[0] == 'help1':
+                elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
@@ -302,7 +302,7 @@ def laser_eval():
             pass
         print(world)  # TODO del
     for block in block_coordinates.values():
-        if type(block) == BGenerator:  # TODO include other types later
+        if type(block) is BGenerator:  # TODO include other types later
             pass
 
 

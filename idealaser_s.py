@@ -183,7 +183,7 @@ class SRedirector(SBlock):
         self.fire = False
         if self.state:
             if self.next_coordinates in block_coordinates:
-                if type(block_coordinates[self.next_coordinates]) != SBridge:
+                if type(block_coordinates[self.next_coordinates]) is not SBridge:
                     self.fire = True
             else:
                 if self.next_coordinates in pulse_coordinates:
@@ -307,7 +307,7 @@ def tile_print():
     print(f"Cycles: {cycle_count}")
     output_dict = {}
     for block in block_coordinates.values():
-        if type(block) == SOutput:
+        if type(block) is SOutput:
             output_dict[block.coordinates] = block.state
     cycle_count += 1
     max_x, min_x, max_y, min_y = edge()
@@ -439,8 +439,8 @@ def main_menu():
     while True:
         try:
             user_input = input('''\n'run': run solution (does not begin stepping, just displays initial state)
-'help1': full list of block IDs (with examples on how to add to solution) and commands
-Enter a block ID with required arguments to add it to solution (see help1), or enter a command: ''').split()
+'help': full list of block IDs (with examples on how to add to solution) and commands
+Enter a block ID with required arguments to add it to solution (see help), or enter a command: ''').split()
             try:
                 user_coordinates = (int(user_input[1]), int(user_input[2]))
                 if user_coordinates in block_coordinates:  # Commands for existing blocks
@@ -448,7 +448,7 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                     if user_input[0] == 'del':
                         del block_coordinates[user_coordinates]
                     elif user_input[0] == 'toggle':
-                        if type(this_block) == SInput:
+                        if type(this_block) is SInput:
                             this_block.original_state = not this_block.original_state
                             this_block.state = this_block.original_state
                         else:
@@ -525,7 +525,7 @@ Enter a block ID with required arguments to add it to solution (see help1), or e
                             block_coordinates = load(f)
                 elif user_input[0] == 'q':
                     return 'q'
-                elif user_input[0] == 'help1':
+                elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
@@ -557,7 +557,7 @@ def run_solution():
     global cycle_count
     while True:
         option = input('''\n\n'r': Step
-'help2': Show symbol meanings in solution
+'symbols': Show symbol meanings in solution
 'show_laser': Show laser list (not usable in main menu)
 'esc': Go back to main menu (clears lasers but does not clear blocks; use 'clear' later): ''')
         if option == 'r':
@@ -572,7 +572,7 @@ def run_solution():
             for k, v in pulse_coordinates.items():
                 if k in block_coordinates:  # if no error, means block at coordinate, check if bridge (and related criteria)
                     block = block_coordinates[k]
-                    if type(block) == SBridge:
+                    if type(block) is SBridge:
                         if k in new_pulse_coordinates:
                             npc_has_k = True
                         else:
@@ -629,10 +629,10 @@ def run_solution():
             tile_print()
         elif option == 'show_laser':
             print(pulse_list)
-        elif option == 'help2':
+        elif option == 'symbols':
             print('''
 Each cell is represented by 2 characters. The first character is either a letter representing a block (key under
-'help1', except the redirector, which is represented by 'WASD' showing its direction), or one of these: (^ > v < #), the
+'help', except the redirector, which is represented by 'WASD' showing its direction), or one of these: (^ > v < #), the
 first 4 representing lasers and their direction, the last representing where 2+ lasers collided. The second character is
 used by all blocks, and shows the different states they can be in.
 
@@ -655,7 +655,7 @@ within.
             pulse_list.clear()
             pulse_coordinates.clear()
             for block in block_coordinates.values():
-                if type(block) == SInput:
+                if type(block) is SInput:
                     block.seq_index = 0
                     block.seq_count = 0
                     block.state = block.original_state
@@ -669,7 +669,7 @@ within.
 if __name__ == '__main__':
     block_coordinates, pulse_list, pulse_coordinates, cycle_count = init_globals()
     print('''Welcome to IdeaLaser (simultaneous evaluation version).
-    Challenge: create logical gates using the tools provided.''')
+Challenge: create logical gates using the tools provided.''')
     while True:
         if main_menu() == 'q':
             break
