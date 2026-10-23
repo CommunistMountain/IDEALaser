@@ -245,8 +245,8 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     if filename in load_list:
                         with open(f'IDEALaser Saves\\Blocktime Saves\\{filename}', 'rb') as f:
                             block_coordinates = load(f)
-                elif user_input[0] == 'q':
-                    return 'q'
+                elif user_input[0] == 'quit':
+                    return 'quit'
                 elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
@@ -264,7 +264,7 @@ Other Commands:
 'show_block': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
-'q': Quit (usable when running solution) (unsaved setups will be lost)''')
+'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
                 else:
                     print("Unrecognised command.")
         except (ValueError, IndexError):
@@ -319,9 +319,9 @@ print("WARNING: WORK IN PROGRESS. Play with idealaser_s.py first, sorry.")  # TO
 print('''Welcome to IdeaLaser (blocktime evaluation version).
 Challenge: create logical gates using the tools provided.''')
 while True:
-    if main_menu() == 'q':
+    if main_menu() == 'quit':
         break
     else:
         tile_print()
-        if run_solution() == 'q':
+        if run_solution() == 'quit':
             break
