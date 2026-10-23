@@ -119,14 +119,14 @@ class BRedirector(BBlock):
         return f'Redirector{*self.coordinates, self.facing}'
 
 
-class BSplitter(BBlock):
+class BQuadSplitter(BBlock):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.state = False
-        self.cost = cost_dict['p']
+        self.cost = cost_dict['q']
     
     def __repr__(self):
-        return f'Splitter{self.coordinates}'
+        return f'QuadSplitter{self.coordinates}'
 
 
 class BOutput(BBlock):
@@ -192,8 +192,8 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                             BRedirector(*user_coordinates, user_input[3])
                         else:
                             print("Invalid direction provided.")
-                    elif user_input[0] == 'p':
-                        BSplitter(*user_coordinates)
+                    elif user_input[0] == 'q':
+                        BQuadSplitter(*user_coordinates)
                     elif user_input[0] == 'l':
                         BBlocker(*user_coordinates)
                     elif user_input[0] == 'b':
@@ -251,7 +251,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
-'p': Splitter ({cost_dict['p']}), coordinates, e.g. 'p 1 2'
+'q': QuadSplitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
 'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), e.g. 'i 1 2 d t'

@@ -26,8 +26,6 @@ correspondingly.
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
-# todo add new block, dual-split, which splits only in either horizontal or vertical axis; don't add new generators like
-#  double-sided generator, use these blocks to split them
 from os import mkdir, path, listdir
 from pickle import dump, load
 from random import random
@@ -203,7 +201,7 @@ class SRedirector(SBlock):
             self.state = False
 
 
-class SSplitter(SBlock):
+class SQuadSplitter(SBlock):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.w = x, y + 1
@@ -214,10 +212,10 @@ class SSplitter(SBlock):
         self.reference = ('w', self.w), ('a', self.a), ('s', self.s), ('d', self.d)
         self.state = False
         self.fire_list = [False, False, False, False]  # wasd
-        self.cost = cost_dict['p']
+        self.cost = cost_dict['q']
     
     def __repr__(self):
-        return f'Splitter{self.coordinates}'
+        return f'QuadSplitter{self.coordinates}'
     
     def prestep(self):
         self.fire_list = [False, False, False, False]
@@ -353,11 +351,11 @@ def tile_print():
                             print(f"{block.facing.upper()}t", end='')
                         else:
                             print(f"{block.facing.upper()}f", end='')
-                    elif block_type == SSplitter:
+                    elif block_type == SQuadSplitter:
                         if block.state:
-                            print("Pt", end='')
+                            print("Qt", end='')
                         else:
-                            print("Pf", end='')
+                            print("Qf", end='')
                     elif block_type == SOutput:
                         if (col, row) in pulse_coordinates:
                             if len(pulse_coordinates[(col, row)]) == 1:
@@ -467,8 +465,8 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                             SRedirector(*user_coordinates, user_input[3])
                         else:
                             print("Invalid direction provided.")
-                    elif user_input[0] == 'p':
-                        SSplitter(*user_coordinates)
+                    elif user_input[0] == 'q':
+                        SQuadSplitter(*user_coordinates)
                     elif user_input[0] == 'l':
                         SBlocker(*user_coordinates)
                     elif user_input[0] == 'b':
@@ -529,7 +527,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
-'p': Splitter ({cost_dict['p']}), coordinates, e.g. 'p 1 2'
+'q': QuadSplitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
 'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), optional numbers for oscillation,

@@ -18,8 +18,8 @@ opposite_face_dict = {
 cost_dict = {  # edit this to edit block costs
     'g': 20,  # generator
     'r': 10,  # redirector
-    # 'd': 15,  # dual
-    'p': 20,  # splitter
+    'd': 15,  # dualsplitter
+    'q': 20,  # quadsplitter
     'l': 10,  # blocker
     'b': 30,  # bridge
     'i': 0,  # input (must be 0)
