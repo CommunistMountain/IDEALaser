@@ -26,6 +26,8 @@ correspondingly.
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
+# todo add ability to input multiple commands in 1 line separated by ; or , so one can just paste everything
+# todo encode rules in Output based on input (truth table)
 from os import mkdir, path, listdir
 from pickle import dump, load
 from random import random
@@ -440,11 +442,25 @@ def main_menu():
 'help': full list of block IDs (with examples on how to add to solution) and commands
 Enter a block ID with required arguments to add it to solution (see help), or enter a command: ''').split()
             try:
-                user_coordinates = (int(user_input[1]), int(user_input[2]))
-                if user_coordinates in block_coordinates:  # Commands for existing blocks
+                user_coordinates = int(user_input[1]), int(user_input[2])
+                if user_input[0] == 'shiftall':
+                    new_block_coordinates = {}
+                    for block in block_coordinates.values():
+                        block.coordinates = block.coordinates[0] + int(user_input[1]), block.coordinates[1] + int(user_input[2])
+                        new_block_coordinates[block.coordinates] = block
+                    block_coordinates = new_block_coordinates
+                elif user_coordinates in block_coordinates:  # Commands for existing blocks
                     this_block = block_coordinates[user_coordinates]
                     if user_input[0] == 'del':
                         del block_coordinates[user_coordinates]
+                    elif user_input[0] == 'shift':
+                        new_coordinates = this_block.coordinates[0] + int(user_input[3]), this_block.coordinates[1] + int(user_input[4])
+                        if new_coordinates in block_coordinates:
+                            print("Coordinates already occupied by block.")
+                        else:
+                            this_block.coordinates = new_coordinates
+                            block_coordinates[new_coordinates] = this_block
+                            del block_coordinates[user_coordinates]
                     elif user_input[0] == 'toggle':
                         if type(this_block) is SInput:
                             this_block.original_state = not this_block.original_state
@@ -454,7 +470,6 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     else:
                         print("Coordinates already occupied by block.")
                 else:  # no existing block found at coordinates, thus user wants to add a block
-                    # Commands for adding new blocks
                     if user_input[0] == 'g':
                         if user_input[3] in ('w', 'a', 's', 'd'):
                             SGenerator(*user_coordinates, user_input[3])
@@ -490,7 +505,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                         print("Must put down at least 1 block before running.")
                 elif user_input[0] == 'clear':
                     block_coordinates.clear()
-                elif user_input[0] == 'show_block':
+                elif user_input[0] == 'show':
                     print(block_coordinates.values())
                 elif user_input[0] == 'save':
                     make_folders()
@@ -536,9 +551,11 @@ Enter a block ID with required arguments to add it to solution (see help), or en
 
 Other Commands:
 'toggle x y': Change the state of an existing input at coordinates (x, y) from on to off, or from off to on
+'shift x y a b': Shift block at coordinates (x, y) to (x+a, y+b)
+'shiftall a b': Shift all blocks from coordinates (x, y) to (x+a, y+b)
 'del x y': Delete block at coordinates (x, y)
 'clear': Clear all blocks
-'show_block': Show block list
+'show': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')

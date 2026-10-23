@@ -168,11 +168,25 @@ def main_menu():
 'help': full list of block IDs (with examples on how to add to solution) and commands
 Enter a block ID with required arguments to add it to solution (see help), or enter a command: ''').split()
             try:
-                user_coordinates = (int(user_input[1]), int(user_input[2]))
-                try:  # Commands for existing blocks
+                user_coordinates = int(user_input[1]), int(user_input[2])
+                if user_input[0] == 'shiftall':
+                    new_block_coordinates = {}
+                    for block in block_coordinates.values():
+                        block.coordinates = block.coordinates[0] + int(user_input[1]), block.coordinates[1] + int(user_input[2])
+                        new_block_coordinates[block.coordinates] = block
+                    block_coordinates = new_block_coordinates
+                elif user_coordinates in block_coordinates:  # Commands for existing blocks
                     this_block = block_coordinates[user_coordinates]
                     if user_input[0] == 'del':
                         del block_coordinates[user_coordinates]
+                    elif user_input[0] == 'shift':
+                        new_coordinates = this_block.coordinates[0] + int(user_input[3]), this_block.coordinates[1] + int(user_input[4])
+                        if new_coordinates in block_coordinates:
+                            print("Coordinates already occupied by block.")
+                        else:
+                            this_block.coordinates = new_coordinates
+                            block_coordinates[new_coordinates] = this_block
+                            del block_coordinates[user_coordinates]
                     elif user_input[0] == 'toggle':
                         if type(this_block) is BInput:
                             this_block.state = not this_block.state
@@ -180,8 +194,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                             print("Block is not an input block.")
                     else:
                         print("Coordinates already occupied by block.")
-                except KeyError:  # no existing block found at coordinates
-                    # Commands for adding new blocks
+                else:  # no existing block found at coordinates, thus user wants to add a block
                     if user_input[0] == 'g':
                         if user_input[3] in ('w', 'a', 's', 'd'):
                             BGenerator(*user_coordinates, user_input[3])
@@ -216,7 +229,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                         print("Must put down at least 1 block before running.")
                 elif user_input[0] == 'clear':
                     block_coordinates.clear()
-                elif user_input[0] == 'show_block':
+                elif user_input[0] == 'show':
                     print(block_coordinates)
                 elif user_input[0] == 'save':
                     save_name = input("Enter file name (enter nothing to escape): ").strip()
@@ -259,9 +272,11 @@ Enter a block ID with required arguments to add it to solution (see help), or en
 
 Other Commands:
 'toggle x y': Change the state of an existing input at coordinates (x, y) from on to off, or from off to on
+'shift x y a b': Shift block at coordinates (x, y) to (x+a, y+b)
+'shiftall a b': Shift all blocks from coordinates (x, y) to (x+a, y+b)
 'del x y': Delete block at coordinates (x, y)
 'clear': Clear all blocks
-'show_block': Show block list
+'show': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
