@@ -172,12 +172,12 @@ class SInput(SBlock):
 
 
 class SEmitter(SBlock):  # superclass of redirectors and splitters
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y, facing=None, next_coordinates=None, fire_list=None):
         self.state = False
-        self.facing = tuple()
-        self.next_coordinates = tuple()
-        self.fire_list = []
+        self.facing = facing if facing is not None else tuple()
+        self.next_coordinates = next_coordinates if next_coordinates is not None else tuple()
+        self.fire_list = fire_list if fire_list is not None else []
+        super().__init__(x, y)
     
     def set_coordinates(self, a, b, block_dict, offset_bool):
         if super().set_coordinates(a, b, block_dict, offset_bool):
@@ -218,17 +218,15 @@ class SEmitter(SBlock):  # superclass of redirectors and splitters
 
 class SRedirector(SEmitter):
     def __init__(self, x, y, direction):
-        super().__init__(x, y)
-        self.facing = (direction,)
         if direction == 'w':
-            self.next_coordinates = ((x, y + 1),)
+            temp_next_coordinates = ((x, y + 1),)
         elif direction == 'a':
-            self.next_coordinates = ((x - 1, y),)
+            temp_next_coordinates = ((x - 1, y),)
         elif direction == 's':
-            self.next_coordinates = ((x, y - 1),)
+            temp_next_coordinates = ((x, y - 1),)
         else:  # direction == 'd'
-            self.next_coordinates = ((x + 1, y),)
-        self.fire = [False]
+            temp_next_coordinates = ((x + 1, y),)
+        super().__init__(x, y, facing=(direction,), next_coordinates=temp_next_coordinates, fire_list=[False])
         self.cost = cost_dict['r']
     
     def __repr__(self):
@@ -237,14 +235,13 @@ class SRedirector(SEmitter):
 
 class SDualSplitter(SEmitter):
     def __init__(self, x, y, direction):
-        super().__init__(x, y)
         if direction in ('w', 's', 'v'):
-            self.facing = 'w', 's'
-            self.next_coordinates = (x, y + 1), (x, y - 1)
+            temp_facing = 'w', 's'
+            temp_next_coordinates = (x, y + 1), (x, y - 1)
         else:  # 'a' or 'd' or 'h'
-            self.facing = 'a', 'd'
-            self.next_coordinates = (x - 1, y), (x + 1, y)
-        self.fire_list = [False, False]
+            temp_facing = 'a', 'd'
+            temp_next_coordinates = (x - 1, y), (x + 1, y)
+        super().__init__(x, y, facing=temp_facing, next_coordinates=temp_next_coordinates, fire_list=[False, False])
         self.cost = cost_dict['d']
     
     def __repr__(self):
@@ -253,10 +250,7 @@ class SDualSplitter(SEmitter):
 
 class SQuadSplitter(SEmitter):
     def __init__(self, x, y):
-        super().__init__(x, y)
-        self.facing = 'w', 'a', 's', 'd'
-        self.next_coordinates = (x, y + 1), (x - 1, y), (x, y - 1), (x + 1, y)
-        self.fire_list = [False, False, False, False]
+        super().__init__(x, y, facing=('w', 'a', 's', 'd'), next_coordinates=((x, y + 1), (x - 1, y), (x, y - 1), (x + 1, y)), fire_list=[False, False, False, False])
         self.cost = cost_dict['q']
     
     def __repr__(self):
