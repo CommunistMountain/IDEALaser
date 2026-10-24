@@ -52,6 +52,10 @@ def make_folders():
         mkdir('IDEALaser Saves/Simultaneous Saves')
     except FileExistsError:
         pass
+    try:
+        mkdir('commands')
+    except FileExistsError:
+        pass
 
 
 class SPulse:
@@ -291,6 +295,41 @@ class SBridge(SBlock):
         return f'Bridge{self.coordinates}'
 
 
+def create_block(user_input, user_coordinates):
+    if user_input[0] == 'g':
+        if user_input[3] in ('w', 'a', 's', 'd'):
+            block = SGenerator(*user_coordinates, user_input[3])
+        else:
+            return "Invalid direction provided."
+    elif user_input[0] == 'r':
+        if user_input[3] in ('w', 'a', 's', 'd'):
+            block = SRedirector(*user_coordinates, user_input[3])
+        else:
+            return "Invalid direction provided."
+    elif user_input[0] == 'd':
+        if user_input[3] in ('w', 'a', 's', 'd', 'h', 'v'):
+            block = SDualSplitter(*user_coordinates, user_input[3])
+        else:
+            return "Invalid direction provided."
+    elif user_input[0] == 'q':
+        block = SQuadSplitter(*user_coordinates)
+    elif user_input[0] == 'l':
+        block = SBlocker(*user_coordinates)
+    elif user_input[0] == 'b':
+        block = SBridge(*user_coordinates)
+    elif user_input[0] == 'i':
+        if user_input[3] in ('w', 'a', 's', 'd'):
+            seq_temp = [int(i) for i in user_input[5:] if int(i) >= 0]
+            block = SInput(*user_coordinates, user_input[3], user_input[4], seq_temp)
+        else:
+            return "Invalid direction provided."
+    elif user_input[0] == 'o':
+        block = SOutput(*user_coordinates)
+    else:
+        return "Unrecognised command."
+    return f"Created {block}"
+
+
 def edge():
     global block_coordinates
     temp_block_x = []
@@ -478,37 +517,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     else:
                         print("Coordinates already occupied by block.")
                 else:  # no existing block found at coordinates, thus user wants to add a block
-                    if user_input[0] == 'g':
-                        if user_input[3] in ('w', 'a', 's', 'd'):
-                            SGenerator(*user_coordinates, user_input[3])
-                        else:
-                            print("Invalid direction provided.")
-                    elif user_input[0] == 'r':
-                        if user_input[3] in ('w', 'a', 's', 'd'):
-                            SRedirector(*user_coordinates, user_input[3])
-                        else:
-                            print("Invalid direction provided.")
-                    elif user_input[0] == 'd':
-                        if user_input[3] in ('w', 'a', 's', 'd', 'h', 'v'):
-                            SDualSplitter(*user_coordinates, user_input[3])
-                        else:
-                            print("Invalid direction provided.")
-                    elif user_input[0] == 'q':
-                        SQuadSplitter(*user_coordinates)
-                    elif user_input[0] == 'l':
-                        SBlocker(*user_coordinates)
-                    elif user_input[0] == 'b':
-                        SBridge(*user_coordinates)
-                    elif user_input[0] == 'i':
-                        if user_input[3] in ('w', 'a', 's', 'd'):
-                            seq_temp = [int(i) for i in user_input[5:] if int(i) >= 0]
-                            SInput(*user_coordinates, user_input[3], user_input[4], seq_temp)
-                        else:
-                            print("Invalid direction provided.")
-                    elif user_input[0] == 'o':
-                        SOutput(*user_coordinates)
-                    else:
-                        print("Unrecognised command.")
+                    print(create_block(user_input, user_coordinates))
             except IndexError:
                 # Commands not concerning individual blocks
                 if user_input[0] == 'run':
@@ -549,6 +558,24 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     if filename in load_list:
                         with open(f'IDEALaser Saves\\Simultaneous Saves\\{filename}', 'rb') as f:
                             block_coordinates = load(f)
+                elif user_input[0] == 'loadcommands':
+                    make_folders()
+                    command_list = listdir('commands')
+                    print()
+                    for file in command_list:
+                        print(file)
+                    print()
+                    filename = input("Enter file name (without .txt), or an invalid name to escape: ") + '.txt'
+                    if filename in command_list:
+                        with open(f'commands\\{filename}', 'rb') as f:
+                            for line in f.readlines():
+                                user_input = line.decode("utf-8").split()
+                                if user_input:
+                                    user_coordinates = int(user_input[1]), int(user_input[2])
+                                    if user_coordinates not in block_coordinates:
+                                        print(create_block(user_input, user_coordinates))
+                                    else:
+                                        print("Coordinates already occupied by block.")
                 elif user_input[0] == 'quit':
                     return 'quit'
                 elif user_input[0] == 'help':
@@ -572,6 +599,7 @@ Other Commands:
 'blocks': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
+'loadcommands': Add blocks from a .txt file with block commands, separated by newlines
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
                 else:
                     print("Unrecognised/failed command.")
