@@ -507,7 +507,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                         print("Must put down at least 1 block before running.")
                 elif user_input[0] == 'clear':
                     block_coordinates.clear()
-                elif user_input[0] == 'show':
+                elif user_input[0] == 'blocks':
                     print(block_coordinates.values())
                 elif user_input[0] == 'save':
                     make_folders()
@@ -558,7 +558,7 @@ Other Commands:
 'shiftall a b': Shift all blocks from coordinates (x, y) to (x+a, y+b)
 'del x y': Delete block at coordinates (x, y)
 'clear': Clear all blocks
-'show': Show block list
+'blocks': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
@@ -576,7 +576,7 @@ def run_solution():
     while True:
         option = input('''\n\n'r': Step
 'symbols': Show symbol meanings in solution
-'show_laser': Show laser list (not usable in main menu)
+'lasers': Show laser list (not usable in main menu)
 'esc': Go back to main menu (clears lasers but does not clear blocks): ''')
         if option == 'r':
             # Step 1
@@ -645,7 +645,7 @@ def run_solution():
                 block.poststep()  # only redirectors, splitters and outputs
             # Step 6
             tile_print()
-        elif option == 'show_laser':
+        elif option == 'lasers':
             print(pulse_list)
         elif option == 'symbols':
             print('''

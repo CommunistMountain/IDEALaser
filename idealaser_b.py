@@ -253,7 +253,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                         print("Must put down at least 1 block before running.")
                 elif user_input[0] == 'clear':
                     block_coordinates.clear()
-                elif user_input[0] == 'show':
+                elif user_input[0] == 'blocks':
                     print(block_coordinates)
                 elif user_input[0] == 'save':
                     save_name = input("Enter file name (enter nothing to escape): ").strip()
@@ -301,7 +301,7 @@ Other Commands:
 'shiftall a b': Shift all blocks from coordinates (x, y) to (x+a, y+b)
 'del x y': Delete block at coordinates (x, y)
 'clear': Clear all blocks
-'show': Show block list
+'blocks': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
