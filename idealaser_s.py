@@ -26,7 +26,6 @@ correspondingly.
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
-# todo add ability to input multiple commands in 1 line separated by ; or , so one can just paste everything
 # todo encode rules in Output based on input (truth table)
 from os import mkdir, path, listdir
 from pickle import dump, load
