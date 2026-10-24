@@ -77,7 +77,7 @@ class BBlock:
     def set_coordinates(self, a, b, block_dict, offset_bool):
         new_coordinates = (self.coordinates[0]+a, self.coordinates[1]+b) if offset_bool else (a, b)
         if new_coordinates not in block_dict:
-            if self.coordinates in block_dict:
+            if self.coordinates in block_dict and block_dict[self.coordinates] is self:
                 del block_dict[self.coordinates]
             block_dict[new_coordinates] = self
             self.coordinates = new_coordinates
@@ -324,7 +324,7 @@ Other Commands:
 'load': Load block setup from a save (unsaved setups will be lost)
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
                 else:
-                    print("Unrecognised command.")
+                    print("Unrecognised/failed command.")
         except (ValueError, IndexError):
             print("\nPlease enter valid values.")
 
