@@ -91,7 +91,17 @@ class SPulse:
 class SBlock:
     def __init__(self, x, y):
         self.coordinates = x, y
-        block_coordinates[self.coordinates] = self
+        self.set_coordinates(x, y, block_coordinates, False)
+    
+    def set_coordinates(self, a, b, block_dict, offset_bool):
+        new_coordinates = (self.coordinates[0]+a, self.coordinates[1]+b) if offset_bool else (a, b)
+        if new_coordinates not in block_dict:
+            del block_dict[self.coordinates]
+            block_dict[new_coordinates] = self
+            self.coordinates = new_coordinates
+            return True
+        else:
+            return False
     
     def prestep(self):
         pass
@@ -167,6 +177,18 @@ class SEmitter(SBlock):  # superclass of redirectors and splitters
         self.facing = tuple()
         self.next_coordinates = tuple()
         self.fire_list = []
+    
+    def set_coordinates(self, a, b, block_dict, offset_bool):
+        if super().set_coordinates(a, b, block_dict, offset_bool):
+            x_d = a if offset_bool else a - self.coordinates[0]
+            y_d = b if offset_bool else b - self.coordinates[1]
+            new_next_coordinates = []
+            for next_coordinate in self.next_coordinates:
+                new_next_coordinates.append((next_coordinate[0]+x_d, next_coordinate[1]+y_d))
+            self.next_coordinates = tuple(new_next_coordinates)
+            return True
+        else:
+            return False
     
     def prestep(self):
         self.fire_list = [False for _ in range(len(self.facing))]
@@ -443,21 +465,15 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                 if user_input[0] == 'shiftall':
                     new_block_coordinates = {}
                     for block in block_coordinates.values():
-                        block.coordinates = block.coordinates[0] + int(user_input[1]), block.coordinates[1] + int(user_input[2])
-                        new_block_coordinates[block.coordinates] = block
+                        block.set_coordinates(int(user_input[1]), int(user_input[2]), new_block_coordinates, True)
                     block_coordinates = new_block_coordinates
                 elif user_coordinates in block_coordinates:  # Commands for existing blocks
                     this_block = block_coordinates[user_coordinates]
                     if user_input[0] == 'del':
                         del block_coordinates[user_coordinates]
                     elif user_input[0] == 'shift':
-                        new_coordinates = this_block.coordinates[0] + int(user_input[3]), this_block.coordinates[1] + int(user_input[4])
-                        if new_coordinates in block_coordinates:
+                        if not this_block.set_coordinates(int(user_input[3]), int(user_input[4]), block_coordinates, True):
                             print("Coordinates already occupied by block.")
-                        else:
-                            this_block.coordinates = new_coordinates
-                            block_coordinates[new_coordinates] = this_block
-                            del block_coordinates[user_coordinates]
                     elif user_input[0] == 'toggle':
                         if type(this_block) is SInput:
                             this_block.original_state = not this_block.original_state
