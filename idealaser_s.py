@@ -96,7 +96,8 @@ class SBlock:
     def set_coordinates(self, a, b, block_dict, offset_bool):
         new_coordinates = (self.coordinates[0]+a, self.coordinates[1]+b) if offset_bool else (a, b)
         if new_coordinates not in block_dict:
-            del block_dict[self.coordinates]
+            if self.coordinates in block_dict:
+                del block_dict[self.coordinates]
             block_dict[new_coordinates] = self
             self.coordinates = new_coordinates
             return True
@@ -524,7 +525,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                 elif user_input[0] == 'clear':
                     block_coordinates.clear()
                 elif user_input[0] == 'blocks':
-                    print(block_coordinates.values())
+                    print(f"{len(block_coordinates)} blocks:", *block_coordinates.values())
                 elif user_input[0] == 'save':
                     make_folders()
                     save_name = input("Enter file name (enter nothing to escape): ").strip()

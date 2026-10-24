@@ -77,7 +77,8 @@ class BBlock:
     def set_coordinates(self, a, b, block_dict, offset_bool):
         new_coordinates = (self.coordinates[0]+a, self.coordinates[1]+b) if offset_bool else (a, b)
         if new_coordinates not in block_dict:
-            del block_dict[self.coordinates]
+            if self.coordinates in block_dict:
+                del block_dict[self.coordinates]
             block_dict[new_coordinates] = self
             self.coordinates = new_coordinates
             return True
