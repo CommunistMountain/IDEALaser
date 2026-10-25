@@ -20,7 +20,6 @@ correspondingly.
 
 6. Display tiles for the player.
 """
-# todo add cleanliness metric: clean solutions do not have lasers escaping into infinity, vice versa
 # todo add strictness? e.g. some solutions may flash the wrong output in the short run but at infinity they are correct
 #  (may not be good because if some output should be true, at cycle 1 it is false already; but interesting exercise)
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
@@ -28,7 +27,9 @@ correspondingly.
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
 # todo add steady state check: find LCM of input sequences, then create a deque twice that length to store past pulses;
 #  steady state happens when the front and back of the deque are the same
+# todo add 'clean' bool that checks if there are lasers to infinity (2 versions: in short run and at steady state)
 # todo overwrite print when running instead of printing a new board. and print in main menu
+# todo add more samples
 from collections import deque
 from math import e
 from os import mkdir, path, listdir
