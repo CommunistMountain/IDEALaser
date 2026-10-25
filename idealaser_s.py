@@ -27,10 +27,11 @@ correspondingly.
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
 # todo overwrite print when running instead of printing a new board
+from collections import deque
+from math import e
 from os import mkdir, path, listdir
 from pickle import dump, load
 from random import random
-from math import e
 from idealaser_globals import facing_dict, opposite_face_dict, cost_dict
 
 
@@ -156,6 +157,9 @@ class SInput(SBlock):
         return f'Input{*self.coordinates, self.facing, self.original_state, self.input_id, self.seq}'
     
     def step(self):
+        for block in block_coordinates.values():
+            if type(block) is SOutput and self.input_id in block.buffer:
+                block.buffer[self.input_id].append(self.state)
         if self.state:
             if self.facing == 'w':
                 SPulse(self.coordinates[0], self.coordinates[1] + 1, self.facing)
@@ -262,19 +266,35 @@ class SQuadSplitter(SEmitter):
 
 
 class SOutput(SBlock):
-    def __init__(self, x, y):
+    def __init__(self, x, y, buffer, table):
         super().__init__(x, y)
         self.state = False
         self.cost = cost_dict['o']
+        self.buffer = buffer
+        self.table = table
+        self.valid = False
     
     def __repr__(self):
-        return f'Output{self.coordinates}'
+        return f'Output{*self.coordinates, tuple(self.buffer.keys()), self.table}'
     
     def poststep(self):
         if self.coordinates in pulse_coordinates:
             self.state = True
         else:
             self.state = False
+        self.valid = False
+        result_str = ''
+        for k, v in self.buffer.items():
+            for block in block_coordinates.values():
+                if type(block) is SInput and block.input_id == k:
+                    bufferpop = v.popleft()
+                    if bufferpop:
+                        result_str += '1'
+                    elif bufferpop is not None:  # None happens when cycle count is less than delay
+                        result_str += '0'
+        if result_str in self.table:
+            if (self.state and '1' in self.table[result_str]) or (not self.state and '0' in self.table[result_str]):
+                self.valid = True
 
 
 class SBlocker(SBlock):
@@ -323,8 +343,8 @@ def create_block(user_input, user_coordinates):
             seq_temp = []
             for optional in user_input[5:]:
                 if optional[:3] == 'id=' and {',', ';'}.isdisjoint(optional[3:]):
-                    for block in block_coordinates:
-                        if type(block) is SInput and block.id == optional[3:]:
+                    for block in block_coordinates.values():
+                        if type(block) is SInput and block.input_id == optional[3:]:
                             break
                     else:
                         id_temp = optional[3:]
@@ -334,7 +354,17 @@ def create_block(user_input, user_coordinates):
         else:
             return "Invalid direction provided."
     elif user_input[0] == 'o':
-        block = SOutput(*user_coordinates)
+        buffer_temp = {}
+        table_temp = {}
+        for optional in user_input[3:]:
+            if optional[:6] == 'table=':
+                table_rows = optional[6:].split(';')
+                header = table_rows[0].split(',')
+                for input_id in header[:-1]:
+                    buffer_temp[input_id] = deque(None for _ in range(int(header[-1])))
+                for table_row in table_rows[1:]:
+                    table_temp[table_row[:len(buffer_temp)]] = table_row[len(buffer_temp):]
+        block = SOutput(*user_coordinates, buffer_temp, table_temp)
     else:
         return "Unrecognised command."
     return f"Created {block}"
@@ -363,19 +393,18 @@ def tile_print():
         cost_sum += block.cost
     print(f"Cost: {cost_sum}")
     print(f"Cycles: {cycle_count}")
-    output_dict = {}
-    for block in block_coordinates.values():
-        if type(block) is SOutput:
-            output_dict[block.coordinates] = block.state
     cycle_count += 1
     max_x, min_x, max_y, min_y = edge()
     area_int = (max_x - min_x - 1) * (max_y - min_y - 1)
     print(f"Area: {area_int}")
-    if output_dict:
-        print(f"Outputs: ", end="")
-        for k, v in output_dict.items():
-            print(f"{k}: {str(v)[0].lower()}; ", end="") # TODO EDIT THIS AREA
-        print()
+    valid_count = 0
+    total_outputs = 0
+    for block in block_coordinates.values():
+        if type(block) is SOutput:
+            total_outputs += 1
+            if block.valid:
+                valid_count += 1
+    print(f"{valid_count}/{total_outputs} valid outputs")
     for row in range(max_y + 1, min_y - 1, -1):
         for col in range(min_x - 1, max_x + 1):
             if row == max_y + 1:
@@ -598,8 +627,12 @@ Enter a block ID with required arguments to add it to solution (see help), or en
     Optional (any order): ID (must be unique, and must not contain , or ;), numbers for oscillation separated by ;
     e.g. 'i 1 2 d t id=Alpha seq=1;2' for firing for 1 cycle then not firing for 2 cycles
 'o': Output ({cost_dict['o']}), coordinates.
-    Optional (any order): delay (>=0), Input IDs separated by ;, truth table (Input ID states, then expected True/False)
-    e.g. 'o 1 2 delay=4 table=Alpha,Beta;000;011;101;110' for an XOR output that considers Input states 4 cycles ago
+    Optional: 'table' with rows separated by ;
+        Header: separated by ',', containing the IDs of all linked inputs, then delay (>=0) in order for the output's
+        validity to be based on the state of inputs that number of cycles ago
+        Body: first characters matching the state of the inputs, then remaining characters showing valid outputs.
+    e.g. 'o 1 2 table=Alpha,Beta,4;0001;011;101;111' for an output based on Alpha and Beta 4 cycles ago; if both false,
+    output is allowed to be either 0 or 1; otherwise, output must be 1. Missing scenarios mean it's always invalid.
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'r': Redirector ({cost_dict['r']}), coordinates, direction, e.g. 'r 1 2 d'
 'd': Dual-Splitter ({cost_dict['d']}), coordinates, direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
