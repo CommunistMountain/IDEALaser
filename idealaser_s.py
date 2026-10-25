@@ -156,10 +156,13 @@ class SInput(SBlock):
     def __repr__(self):
         return f'Input{*self.coordinates, self.facing, self.original_state, self.input_id, self.seq}'
     
-    def step(self):
+    def update_outputs(self):
         for block in block_coordinates.values():
             if type(block) is SOutput and self.input_id in block.buffer:
                 block.buffer[self.input_id].append(self.state)
+        
+    def step(self):
+        self.update_outputs()
         if self.state:
             if self.facing == 'w':
                 SPulse(self.coordinates[0], self.coordinates[1] + 1, self.facing)
@@ -277,11 +280,7 @@ class SOutput(SBlock):
     def __repr__(self):
         return f'Output{*self.coordinates, tuple(self.buffer.keys()), self.table}'
     
-    def poststep(self):
-        if self.coordinates in pulse_coordinates:
-            self.state = True
-        else:
-            self.state = False
+    def update_valid(self):
         self.valid = False
         result_str = ''
         for k, v in self.buffer.items():
@@ -295,6 +294,13 @@ class SOutput(SBlock):
         if result_str in self.table:
             if (self.state and '1' in self.table[result_str]) or (not self.state and '0' in self.table[result_str]):
                 self.valid = True
+    
+    def poststep(self):
+        if self.coordinates in pulse_coordinates:
+            self.state = True
+        else:
+            self.state = False
+        self.update_valid()
 
 
 class SBlocker(SBlock):
@@ -561,6 +567,12 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                 # Commands not concerning individual blocks
                 if user_input[0] == 'run':
                     if block_coordinates:  # if there exists at least 1 block
+                        for block in block_coordinates.values():
+                            if type(block) is SInput:
+                                block.update_outputs()
+                        for block in block_coordinates.values():
+                            if type(block) is SOutput:
+                                block.update_valid()
                         return
                     else:
                         print("Must put down at least 1 block before running.")
@@ -766,6 +778,9 @@ within.
                     block.seq_index = 0
                     block.seq_count = 0
                     block.state = block.original_state
+                else:
+                    if hasattr(block, 'state'):
+                        block.state = False
             return
         elif option == 'quit':
             return 'quit'
