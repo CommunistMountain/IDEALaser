@@ -313,14 +313,14 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     return 'quit'
                 elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
-'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
+'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), e.g. 'i 1 2 d t'
+'o': Output ({cost_dict['o']}), coordinates, e.g. 'o 1 2'
+'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
 'd': Dual-Splitter ({cost_dict['d']}), coordinates and direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
 'q': Quad-Splitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
-'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
+'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
-'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), e.g. 'i 1 2 d t'
-'o': Output ({cost_dict['o']}), coordinates, e.g. 'o 1 2'
 
 Other Commands:
 'toggle x y': Change the state of an existing input at coordinates (x, y) from on to off, or from off to on
