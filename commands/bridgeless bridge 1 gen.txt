@@ -1,0 +1,15 @@
+# substitute a bridge at 3 5
+i 1 5 d t id=A
+r 2 3 d
+q 2 5
+l 2 6
+o 3 1 table=A,B,0;000;100;011;111  # IS B
+r 3 2 s
+q 3 6
+i 3 7 s t id=B
+r 4 6 s
+g 5 4 a
+r 6 2 a
+d 6 3 v
+r 6 5 d
+o 7 5 table=A,B,0;000;101;010;111  # IS A
