@@ -26,7 +26,7 @@ correspondingly.
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
-# todo encode rules in Output based on input (truth table)
+# todo overwrite print when running instead of printing a new board
 from os import mkdir, path, listdir
 from pickle import dump, load
 from random import random
@@ -138,7 +138,7 @@ class SGenerator(SBlock):
 
 
 class SInput(SBlock):
-    def __init__(self, x, y, direction, level, sequence):
+    def __init__(self, x, y, direction, level, input_id, sequence):
         super().__init__(x, y)
         self.facing = direction
         if level == 't':
@@ -147,12 +147,13 @@ class SInput(SBlock):
             self.original_state = False
         self.state = self.original_state
         self.cost = cost_dict['i']
-        self.seq = [int(i) for i in sequence.split(';') if int(i) >= 0]
+        self.input_id = input_id
+        self.seq = sequence
         self.seq_index = 0
         self.seq_count = 0
     
     def __repr__(self):
-        return f'Input{*self.coordinates, self.facing, self.original_state, self.seq}'
+        return f'Input{*self.coordinates, self.facing, self.original_state, self.input_id, self.seq}'
     
     def step(self):
         if self.state:
@@ -318,7 +319,18 @@ def create_block(user_input, user_coordinates):
         block = SBridge(*user_coordinates)
     elif user_input[0] == 'i':
         if user_input[3] in ('w', 'a', 's', 'd'):
-            block = SInput(*user_coordinates, user_input[3], user_input[4], user_input[5])
+            id_temp = None
+            seq_temp = []
+            for optional in user_input[5:]:
+                if optional[:3] == 'id=' and {',', ';'}.isdisjoint(optional[3:]):
+                    for block in block_coordinates:
+                        if type(block) is SInput and block.id == optional[3:]:
+                            break
+                    else:
+                        id_temp = optional[3:]
+                elif optional[:4] == 'seq=':
+                    seq_temp = [int(i) for i in optional[4:].split(';') if int(i) >= 0]
+            block = SInput(*user_coordinates, user_input[3], user_input[4], id_temp, seq_temp)
         else:
             return "Invalid direction provided."
     elif user_input[0] == 'o':
@@ -362,7 +374,7 @@ def tile_print():
     if output_dict:
         print(f"Outputs: ", end="")
         for k, v in output_dict.items():
-            print(f"{k}: {str(v)[0].lower()}; ", end="")
+            print(f"{k}: {str(v)[0].lower()}; ", end="") # TODO EDIT THIS AREA
         print()
     for row in range(max_y + 1, min_y - 1, -1):
         for col in range(min_x - 1, max_x + 1):
@@ -579,9 +591,11 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                 elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'i': Input ({cost_dict['i']}), coordinates, direction, state (firing or not).
-    Optional: numbers for oscillation separated by ;
-    e.g. 'i 1 2 d t 1;2' for firing for 1 cycle then not firing for 2 cycles
-'o': Output ({cost_dict['o']}), coordinates, e.g. 'o 1 2'
+    Optional (any order): ID (must be unique, and must not contain , or ;), numbers for oscillation separated by ;
+    e.g. 'i 1 2 d t id=Alpha seq=1;2' for firing for 1 cycle then not firing for 2 cycles
+'o': Output ({cost_dict['o']}), coordinates.
+    Optional (any order): delay (>=0), Input IDs separated by ;, truth table (Input ID states, then expected True/False)
+    e.g. 'o 1 2 delay=4 table=Alpha,Beta;000;011;101;110' for an XOR output that considers Input states 4 cycles ago
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
 'r': Redirector ({cost_dict['r']}), coordinates, direction, e.g. 'r 1 2 d'
 'd': Dual-Splitter ({cost_dict['d']}), coordinates, direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
