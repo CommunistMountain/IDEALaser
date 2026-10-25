@@ -147,7 +147,7 @@ class SInput(SBlock):
             self.original_state = False
         self.state = self.original_state
         self.cost = cost_dict['i']
-        self.seq = sequence
+        self.seq = [int(i) for i in sequence.split(';') if int(i) >= 0]
         self.seq_index = 0
         self.seq_count = 0
     
@@ -318,8 +318,7 @@ def create_block(user_input, user_coordinates):
         block = SBridge(*user_coordinates)
     elif user_input[0] == 'i':
         if user_input[3] in ('w', 'a', 's', 'd'):
-            seq_temp = [int(i) for i in user_input[5:] if int(i) >= 0]
-            block = SInput(*user_coordinates, user_input[3], user_input[4], seq_temp)
+            block = SInput(*user_coordinates, user_input[3], user_input[4], user_input[5])
         else:
             return "Invalid direction provided."
     elif user_input[0] == 'o':
@@ -579,14 +578,15 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     return 'quit'
                 elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
-'i': Input ({cost_dict['i']}), coordinates and direction and state (firing or not), optional numbers for oscillation,
-    e.g. 'i 1 2 d t 1', 1 indicating it alternates between firing and not firing every cycle
+'i': Input ({cost_dict['i']}), coordinates, direction, state (firing or not).
+    Optional: numbers for oscillation separated by ;
+    e.g. 'i 1 2 d t 1;2' for firing for 1 cycle then not firing for 2 cycles
 'o': Output ({cost_dict['o']}), coordinates, e.g. 'o 1 2'
 'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
-'r': Redirector ({cost_dict['r']}), coordinates and direction, e.g. 'r 1 2 d'
-'d': Dual-Splitter ({cost_dict['d']}), coordinates and direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
+'r': Redirector ({cost_dict['r']}), coordinates, direction, e.g. 'r 1 2 d'
+'d': Dual-Splitter ({cost_dict['d']}), coordinates, direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
 'q': Quad-Splitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
-'g': Generator ({cost_dict['g']}), coordinates and direction, e.g. 'g 1 2 d'
+'g': Generator ({cost_dict['g']}), coordinates, direction, e.g. 'g 1 2 d'
 'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
 
 Other Commands:
