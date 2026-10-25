@@ -26,7 +26,9 @@ correspondingly.
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
-# todo overwrite print when running instead of printing a new board
+# todo add steady state check: find LCM of input sequences, then create a deque twice that length to store past pulses;
+#  steady state happens when the front and back of the deque are the same
+# todo overwrite print when running instead of printing a new board. and print in main menu
 from collections import deque
 from math import e
 from os import mkdir, path, listdir
@@ -434,37 +436,38 @@ def tile_print():
                 if (col, row) in block_coordinates:
                     block = block_coordinates[(col, row)]
                     block_type = type(block)
-                    if block_type == SGenerator:
+                    if block_type is SGenerator:
                         print(f"G{facing_dict[block.facing]}", end='')
-                    elif block_type == SInput:
+                    elif block_type is SInput:
                         if block.state:
                             print(f"I{facing_dict[block.facing]}", end='')
                         else:
                             print("If", end='')
-                    elif block_type == SRedirector:
+                    elif block_type is SRedirector:
                         if block.state:
                             print(f"{block.facing[0].upper()}t", end='')
                         else:
                             print(f"{block.facing[0].upper()}f", end='')
-                    elif block_type == SDualSplitter:
+                    elif block_type is SDualSplitter:
                         if block.state:
                             print(f"{'V' if block.facing == ('w', 's') else 'H'}t", end='')
                         else:
                             print(f"{'V' if block.facing == ('w', 's') else 'H'}f", end='')
-                    elif block_type == SQuadSplitter:
+                    elif block_type is SQuadSplitter:
                         if block.state:
                             print("Qt", end='')
                         else:
                             print("Qf", end='')
-                    elif block_type == SOutput:
-                        if (col, row) in pulse_coordinates:
+                    elif block_type is SOutput:
+                        rep = 'O' if block.valid else 'X'
+                        if block.state:
                             if len(pulse_coordinates[(col, row)]) == 1:
-                                print("Ot", end='')
+                                print(f"{rep}t", end='')
                             else:
-                                print("O#", end='')
+                                print(f"{rep}#", end='')
                         else:
-                            print("Of", end='')
-                    elif block_type == SBlocker:
+                            print(f"{rep}f", end='')
+                    elif block_type is SBlocker:
                         if (col, row) in pulse_coordinates:
                             if len(pulse_coordinates[(col, row)]) == 1:
                                 print("Lt", end='')
@@ -472,7 +475,7 @@ def tile_print():
                                 print("L#", end='')
                         else:
                             print("Lf", end='')
-                    elif block_type == SBridge:
+                    elif block_type is SBridge:
                         if (col, row) in pulse_coordinates:
                             direction_list = pulse_coordinates[(col, row)]
                             vertical = 0  # 0: no pulse, 1: no collision, 2: collision
@@ -751,9 +754,10 @@ def run_solution():
         elif option == 'symbols':
             print('''
 Each cell is represented by 2 characters. The first character is either a letter representing a block (key under
-'help', except the redirector and dual-splitter, which are represented by 'WASD', and 'HV' respectively showing their
-directions), or one of these: (^ > v < #), the first 4 representing lasers and their direction, the last representing
-where 2+ lasers collided. The second character is used by all blocks, and shows the different states they can be in.
+'help', except the redirector, dual-splitter and output, which are represented by 'WASD', 'HV' and 'OX' respectively
+showing their directions/validity), or one of these: (^ > v < #), the first 4 representing lasers and their direction,
+the last representing where 2+ lasers collided. The second character is used by all blocks, and shows the different
+states they can be in based on whether there are lasers within them.
 
 Redirector/Splitter: 't' when hit by laser, 'f' when not.
 Blocker/Output: 't' when hit by a single laser, '#' when hit by multiple lasers (output still considered to be in 'on'
