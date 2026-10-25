@@ -695,39 +695,35 @@ def run_solution():
                 if k in block_coordinates:  # if no error, means block at coordinate, check if bridge (and related criteria)
                     block = block_coordinates[k]
                     if type(block) is SBridge:
-                        if k in new_pulse_coordinates:
-                            npc_has_k = True
-                        else:
-                            npc_has_k = False
                         if ('w' in v) != ('s' in v):
                             for pulse in pulse_list:
                                 if pulse.coordinates == k and pulse.facing in ('w', 's'):
                                     new_pulses.append(pulse)
                                     break
-                            if npc_has_k:
-                                if 'w' in v:
+                            if 'w' in v:
+                                try:
                                     new_pulse_coordinates[k].append('w')
-                                else:
-                                    new_pulse_coordinates[k].append('s')
-                            else:
-                                if 'w' in v:
+                                except KeyError:
                                     new_pulse_coordinates[k] = ['w']
-                                else:
+                            else:
+                                try:
+                                    new_pulse_coordinates[k].append('s')
+                                except KeyError:
                                     new_pulse_coordinates[k] = ['s']
                         if ('a' in v) != ('d' in v):
                             for pulse in pulse_list:
                                 if pulse.coordinates == k and pulse.facing in ('a', 'd'):
                                     new_pulses.append(pulse)
                                     break
-                            if npc_has_k:
-                                if 'a' in v:
+                            if 'a' in v:
+                                try:
                                     new_pulse_coordinates[k].append('a')
-                                else:
-                                    new_pulse_coordinates[k].append('d')
-                            else:
-                                if 'a' in v:
+                                except KeyError:
                                     new_pulse_coordinates[k] = ['a']
-                                else:
+                            else:
+                                try:
+                                    new_pulse_coordinates[k].append('d')
+                                except KeyError:
                                     new_pulse_coordinates[k] = ['d']
                 else:  # no block found at coordinates, check if only one pulse and not out of board range
                     if len(v) == 1 and k[0] in range(min_x + 1, max_x) and k[1] in range(min_y + 1, max_y):
