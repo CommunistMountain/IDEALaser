@@ -580,6 +580,12 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                         with open(f'commands\\{filename}', 'rb') as f:
                             for line in f.readlines():
                                 user_input = line.decode("utf-8").split()
+                                comment_index = 0
+                                for i in range(len(user_input)):
+                                    if user_input[i][0] == '#':
+                                        comment_index = i
+                                        break
+                                user_input = user_input[:comment_index]
                                 if user_input:
                                     user_coordinates = int(user_input[1]), int(user_input[2])
                                     if user_coordinates not in block_coordinates:
