@@ -20,10 +20,8 @@ correspondingly.
 
 6. Display tiles for the player.
 """
-# todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
+# todo add bridge output? allow laser to pass through it instead of consuming. also OR logic of being true. cost 20?
 #  because they can be used as splitter alternatives (reuse incoming laser)
-# todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
-# todo add more samples
 from collections import deque
 from copy import deepcopy
 from math import lcm
@@ -556,7 +554,7 @@ def main_menu():
         try:
             user_input = input('''\n'run': run solution (does not begin stepping, just displays initial state)
 'help': full list of commands
-Enter a block ID with required arguments to add it to solution (see help), or enter a command: ''').split()
+Enter a command: ''').split()
             try:
                 user_coordinates = int(user_input[1]), int(user_input[2])
                 if user_input[0] == 'shiftall':
