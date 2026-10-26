@@ -543,7 +543,7 @@ def main_menu():
             tile_print(running=False)
         try:
             user_input = input('''\n'run': run solution (does not begin stepping, just displays initial state)
-'help': full list of block IDs (with examples on how to add to solution) and commands
+'help': full list of commands
 Enter a block ID with required arguments to add it to solution (see help), or enter a command: ''').split()
             try:
                 user_coordinates = int(user_input[1]), int(user_input[2])
@@ -615,7 +615,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                     if filename in load_list:
                         with open(f'IDEALaser Saves\\Simultaneous Saves\\{filename}', 'rb') as f:
                             block_coordinates = load(f)
-                elif user_input[0] == 'loadcommands':
+                elif user_input[0] == 'loadcom':
                     make_folders()
                     command_list = listdir('commands')
                     print()
@@ -640,26 +640,28 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                 elif user_input[0] == 'quit':
                     return 'quit'
                 elif user_input[0] == 'help':
-                    print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
-'i': Input ({cost_dict['i']}), coordinates, direction, state (firing or not).
+                    print(f'''
+Block commands. Name (cost): BlockID, requirements (assume x=1, y=2, direction(wasd)=right, state=true)
+Input ({cost_dict['i']}): 'i', coordinates, direction, state (firing or not).
     Optional (any order): ID (must be unique, and must not contain , or ;), oscillation sequence separated by ; (numbers
     must >0 int; if there are an odd number of numbers, state will alternate)
     e.g. 'i 1 2 d t id=Alpha seq=1;2;3' (fire 1, don't fire 2, fire 3, don't fire 1, fire 2, don't fire 3, repeat)
-'o': Output ({cost_dict['o']}), coordinates.
+Output ({cost_dict['o']}): 'o', coordinates.
     Optional: 'table' with rows separated by ;
         Header: separated by ',', containing the IDs of all linked inputs, then delay (>=0) in order for the output's
         validity to be based on the state of inputs that number of cycles ago
         Body: first characters matching the state of the inputs, then remaining characters showing valid outputs.
     e.g. 'o 1 2 table=Alpha,Beta,4;0001;011;101;111' for an output based on Alpha and Beta 4 cycles ago; if both false,
     output is allowed to be either 0 or 1; otherwise, output must be 1. Missing scenarios mean it's always invalid.
-'l': Blocker ({cost_dict['l']}), coordinates, e.g. 'l 1 2'
-'r': Redirector ({cost_dict['r']}), coordinates, direction, e.g. 'r 1 2 d'
-'d': Dual-Splitter ({cost_dict['d']}), coordinates, direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
-'q': Quad-Splitter ({cost_dict['q']}), coordinates, e.g. 'q 1 2'
-'g': Generator ({cost_dict['g']}), coordinates, direction, e.g. 'g 1 2 d'
-'b': Bridge ({cost_dict['b']}), coordinates, e.g. 'b 1 2'
+Blocker ({cost_dict['l']}): 'l', coordinates, e.g. 'l 1 2'
+Redirector ({cost_dict['r']}): 'r', coordinates, direction, e.g. 'r 1 2 d'
+Dual-Splitter ({cost_dict['d']}): 'd', coordinates, direction, e.g. 'd 1 2 d' (also accepts 'h' or 'v' for direction)
+Quad-Splitter ({cost_dict['q']}): 'q', coordinates, e.g. 'q 1 2'
+Generator ({cost_dict['g']}): 'g', coordinates, direction, e.g. 'g 1 2 d'
+Bridge ({cost_dict['b']}): 'b', coordinates, e.g. 'b 1 2'
 
 Other Commands:
+'symbols': Symbol meanings
 'toggle x y': Change the state of an existing input at coordinates (x, y) from on to off, or from off to on
 'shift x y a b': Shift block at coordinates (x, y) to (x+a, y+b)
 'shiftall a b': Shift all blocks from coordinates (x, y) to (x+a, y+b)
@@ -668,8 +670,28 @@ Other Commands:
 'blocks': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
-'loadcommands': Add blocks from a .txt file with block commands, separated by newlines
+'loadcom': Add blocks from a .txt file with block commands, separated by newlines. Will not overwrite existing blocks
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
+                elif user_input[0] == 'symbols':
+                    print('''
+Each cell is represented by 2 characters. The first character is either a letter representing a block (key under
+'help', except the redirector, dual-splitter and output, which are represented by 'WASD', 'HV' and 'OX' respectively
+showing their directions/validity), or one of these: (^ > v < #), the first 4 representing lasers and their direction,
+the last representing where 2+ lasers collided. The second character is used by all blocks, and shows the different
+states they can be in based on whether there are lasers within them.
+
+Redirector/Splitter: 't' when hit by laser, 'f' when not.
+Blocker/Output: 't' when hit by a single laser, '#' when hit by multiple lasers (output still considered to be in 'on'
+state), 'f' when not hit by any laser.
+
+Generator: '^ > v <', showing which direction it is facing.
+
+Input: '^ > v < f', first 4 same as generator if it is active, last one indicates that it is inactive.
+
+Bridge: '- l t', if lasers within it are non-colliding and in horizontal, vertical or both tubes respectively; '~ z #'
+if lasers are colliding in horizontal, vertical or both tubes respectively; 'x' when the vertical is colliding and the
+horizontal is non-colliding; '+' when the horizontal is colliding and the vertical is non-colliding; 'f' if no lasers
+within.''')
                 else:
                     print("Unrecognised/failed command.")
         except (ValueError, IndexError):
@@ -692,7 +714,6 @@ def run_solution():
     clean_after = True
     while True:
         option = input('''\n'r': Step
-'symbols': Show symbol meanings in solution
 'lasers': Show laser list (not usable in main menu)
 'esc': Go back to main menu (clears lasers but does not clear blocks): ''')
         if option == 'r':
@@ -773,28 +794,6 @@ def run_solution():
             tile_print(steady_state=steady_state, clean=(clean_before, clean_after))
         elif option == 'lasers':
             print(pulse_list)
-        elif option == 'symbols':
-            print('''
-Each cell is represented by 2 characters. The first character is either a letter representing a block (key under
-'help', except the redirector, dual-splitter and output, which are represented by 'WASD', 'HV' and 'OX' respectively
-showing their directions/validity), or one of these: (^ > v < #), the first 4 representing lasers and their direction,
-the last representing where 2+ lasers collided. The second character is used by all blocks, and shows the different
-states they can be in based on whether there are lasers within them.
-
-Redirector/Splitter: 't' when hit by laser, 'f' when not.
-Blocker/Output: 't' when hit by a single laser, '#' when hit by multiple lasers (output still considered to be in 'on'
-state), 'f' when not hit by any laser.
-
-Generator: '^ > v <', showing which direction it is facing.
-
-Input: '^ > v < f', first 4 same as generator if it is active, last one indicates that it is inactive.
-
-Bridge: '- l t', if lasers within it are non-colliding and in horizontal, vertical or both tubes respectively; '~ z #'
-if lasers are colliding in horizontal, vertical or both tubes respectively; 'x' when the vertical is colliding and the
-horizontal is non-colliding; '+' when the horizontal is colliding and the vertical is non-colliding; 'f' if no lasers
-within.
-
-''')
         elif option == 'esc':
             cycle_count = 0
             pulse_list.clear()
