@@ -30,10 +30,10 @@ correspondingly.
 # todo add 'clean' bool that checks if there are lasers to infinity (2 versions: in short run and at steady state)
 # todo add more samples
 from collections import deque
-from math import e
+from copy import deepcopy
+from math import lcm
 from os import mkdir, path, listdir
 from pickle import dump, load
-from random import random
 from idealaser_globals import facing_dict, opposite_face_dict, cost_dict
 
 
@@ -176,7 +176,7 @@ class SInput(SBlock):
                 SPulse(self.coordinates[0] + 1, self.coordinates[1], self.facing)
         if self.seq:
             self.seq_count += 1
-            if (self.seq[self.seq_index] == 0 and random() < 1 / e) or self.seq_count == self.seq[self.seq_index]:
+            if self.seq_count == self.seq[self.seq_index]:
                 self.state = not self.state
                 self.seq_count = 0
                 self.seq_index += 1
@@ -357,7 +357,7 @@ def create_block(user_input, user_coordinates):
                     else:
                         id_temp = optional[3:]
                 elif optional[:4] == 'seq=':
-                    seq_temp = [int(i) for i in optional[4:].split(';') if int(i) >= 0]
+                    seq_temp = [int(i) for i in optional[4:].split(';') if int(i) > 0]
             block = SInput(*user_coordinates, user_input[3], user_input[4], id_temp, seq_temp)
         else:
             return "Invalid direction provided."
@@ -392,7 +392,7 @@ def edge():
     return max_x, min_x, max_y, min_y
 
 
-def tile_print(running=True):
+def tile_print(running=True, steady_state=None):
     global pulse_list
     global pulse_coordinates
     global cycle_count
@@ -414,6 +414,8 @@ def tile_print(running=True):
                 if block.valid:
                     valid_count += 1
         print(f"{valid_count}/{total_outputs} valid outputs")
+        if steady_state is not None:
+            print(f"Steady State: {steady_state}")
     for row in range(max_y + 1, min_y - 1, -1):
         for col in range(min_x - 1, max_x + 1):
             if row == max_y + 1:
@@ -643,7 +645,7 @@ Enter a block ID with required arguments to add it to solution (see help), or en
                 elif user_input[0] == 'help':
                     print(f'''\nBlockID: name (cost), requirements (assume x=1, y=2, direction(wasd)=right, state=true):
 'i': Input ({cost_dict['i']}), coordinates, direction, state (firing or not).
-    Optional (any order): ID (must be unique, and must not contain , or ;), numbers for oscillation separated by ;
+    Optional (any order): ID (must be unique, and must not contain , or ;), numbers for oscillation separated by ; (>0)
     e.g. 'i 1 2 d t id=Alpha seq=1;2' for firing for 1 cycle then not firing for 2 cycles
 'o': Output ({cost_dict['o']}), coordinates.
     Optional: 'table' with rows separated by ;
@@ -681,6 +683,13 @@ def run_solution():
     global pulse_list
     global pulse_coordinates
     global cycle_count
+    input_periods = []
+    for block in block_coordinates.values():
+        if type(block) is SInput:
+            if block.seq:  # empty means period 1 thus no need to append
+                input_periods.append(sum(block.seq) * (1 if len(block.seq) % 2 == 0 else 2))
+    input_lcm = lcm(*input_periods)
+    past_pulses_deque = deque(None for _ in range(input_lcm * 2))
     while True:
         option = input('''\n'r': Step
 'symbols': Show symbol meanings in solution
@@ -748,7 +757,11 @@ def run_solution():
             for block in block_coordinates.values():
                 block.poststep()  # only redirectors, splitters and outputs
             # Step 6
-            tile_print()
+            past_pulses_deque.append(deepcopy(pulse_coordinates))
+            past_pulses_deque.popleft()
+            earlier_pulses = [past_pulses_deque[i] for i in range(input_lcm)]
+            later_pulses = [past_pulses_deque[i] for i in range(input_lcm, input_lcm * 2)]
+            tile_print(steady_state=(earlier_pulses == later_pulses))
         elif option == 'lasers':
             print(pulse_list)
         elif option == 'symbols':
