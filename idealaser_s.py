@@ -28,7 +28,6 @@ correspondingly.
 # todo add steady state check: find LCM of input sequences, then create a deque twice that length to store past pulses;
 #  steady state happens when the front and back of the deque are the same
 # todo add 'clean' bool that checks if there are lasers to infinity (2 versions: in short run and at steady state)
-# todo overwrite print when running instead of printing a new board. and print in main menu
 # todo add more samples
 from collections import deque
 from math import e
@@ -393,27 +392,28 @@ def edge():
     return max_x, min_x, max_y, min_y
 
 
-def tile_print():
+def tile_print(running=True):
     global pulse_list
     global pulse_coordinates
     global cycle_count
     cost_sum = 0
     for block in block_coordinates.values():
         cost_sum += block.cost
-    print(f"Cost: {cost_sum}")
-    print(f"Cycles: {cycle_count}")
-    cycle_count += 1
+    print(f"\nCost: {cost_sum}")
     max_x, min_x, max_y, min_y = edge()
     area_int = (max_x - min_x - 1) * (max_y - min_y - 1)
     print(f"Area: {area_int}")
-    valid_count = 0
-    total_outputs = 0
-    for block in block_coordinates.values():
-        if type(block) is SOutput:
-            total_outputs += 1
-            if block.valid:
-                valid_count += 1
-    print(f"{valid_count}/{total_outputs} valid outputs")
+    if running:
+        print(f"Cycles: {cycle_count}")
+        cycle_count += 1
+        valid_count = 0
+        total_outputs = 0
+        for block in block_coordinates.values():
+            if type(block) is SOutput:
+                total_outputs += 1
+                if block.valid:
+                    valid_count += 1
+        print(f"{valid_count}/{total_outputs} valid outputs")
     for row in range(max_y + 1, min_y - 1, -1):
         for col in range(min_x - 1, max_x + 1):
             if row == max_y + 1:
@@ -532,6 +532,7 @@ def tile_print():
                 print("|", end='')
         if row != min_y:
             print(f"\n{'-- ' * (max_x - min_x + 2)}")
+    print()
 
 
 def main_menu():
@@ -539,6 +540,8 @@ def main_menu():
     global pulse_list
     global pulse_coordinates
     while True:
+        if block_coordinates:
+            tile_print(running=False)
         try:
             user_input = input('''\n'run': run solution (does not begin stepping, just displays initial state)
 'help': full list of block IDs (with examples on how to add to solution) and commands
@@ -679,7 +682,7 @@ def run_solution():
     global pulse_coordinates
     global cycle_count
     while True:
-        option = input('''\n\n'r': Step
+        option = input('''\n'r': Step
 'symbols': Show symbol meanings in solution
 'lasers': Show laser list (not usable in main menu)
 'esc': Go back to main menu (clears lasers but does not clear blocks): ''')
