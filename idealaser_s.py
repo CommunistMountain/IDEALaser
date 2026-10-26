@@ -20,8 +20,6 @@ correspondingly.
 
 6. Display tiles for the player.
 """
-# todo add strictness? e.g. some solutions may flash the wrong output in the short run but at infinity they are correct
-#  (may not be good because if some output should be true, at cycle 1 it is false already; but interesting exercise)
 # todo add bridge output: allow laser to pass through it instead of consuming. also OR logic of being true. cost 20
 #  because they can be used as splitter alternatives (reuse incoming laser)
 # todo add some test levels, and multiple folders for storing each level's saves. add metadata to saves like OM?
@@ -281,6 +279,7 @@ class SOutput(SBlock):
     
     def update_valid(self):
         self.valid = False
+        nonecount = 0
         result_str = ''
         for k, v in self.buffer.items():
             for block in block_coordinates.values():
@@ -288,9 +287,13 @@ class SOutput(SBlock):
                     bufferpop = v.popleft()
                     if bufferpop:
                         result_str += '1'
-                    elif bufferpop is not None:  # None happens when cycle count is less than delay
+                    elif bufferpop is not None:
                         result_str += '0'
-        if result_str in self.table:
+                    else:  # None; happens for delay
+                        nonecount += 1
+        if nonecount > 0:
+            self.valid = True  # outputs are always valid during the delay period
+        elif result_str in self.table:
             if (self.state and '1' in self.table[result_str]) or (not self.state and '0' in self.table[result_str]):
                 self.valid = True
     
@@ -389,7 +392,7 @@ def edge():
     return max_x, min_x, max_y, min_y
 
 
-def tile_print(running=True, steady_state=False, clean=(True, True)):
+def tile_print(running=True, steady_state=False, clean=(True, True), strict=(True, True), output_info=None):
     global pulse_list
     global pulse_coordinates
     global cycle_count
@@ -404,14 +407,18 @@ def tile_print(running=True, steady_state=False, clean=(True, True)):
         print(f"Cycles: {cycle_count}")
         cycle_count += 1
         print(f"Steady State: {steady_state}")
-        print(f"Clean: {clean[0]} before Steady State{f", {clean[1]} after Steady State" if steady_state else ""}")
-        valid_count = 0
-        total_outputs = 0
-        for block in block_coordinates.values():
-            if type(block) is SOutput:
-                total_outputs += 1
-                if block.valid:
-                    valid_count += 1
+        print(f"Clean: {clean[0]} before Steady State{f", {clean[1]} after" if steady_state else ""}")
+        print(f"Strictly valid: {strict[0]} before Steady State{f", {strict[1]} after" if steady_state else ""}")
+        if output_info is None:
+            valid_count = 0
+            total_outputs = 0
+            for block in block_coordinates.values():
+                if type(block) is SOutput:
+                    total_outputs += 1
+                    if block.valid:
+                        valid_count += 1
+        else:
+            valid_count, total_outputs = output_info
         print(f"{valid_count}/{total_outputs} valid outputs")
     for row in range(max_y + 1, min_y - 1, -1):
         for col in range(min_x - 1, max_x + 1):
@@ -712,6 +719,8 @@ def run_solution():
     past_pulses_deque = deque(None for _ in range(input_lcm * 2))
     clean_before = True
     clean_after = True
+    strict_before = True
+    strict_after = True
     while True:
         option = input('''\n'r': Step
 'lasers': Show laser list (not usable in main menu)
@@ -791,7 +800,19 @@ def run_solution():
                     else:
                         clean_before = False
                     break
-            tile_print(steady_state=steady_state, clean=(clean_before, clean_after))
+            valid_count = 0
+            total_outputs = 0
+            for block in block_coordinates.values():
+                if type(block) is SOutput:
+                    total_outputs += 1
+                    if block.valid:
+                        valid_count += 1
+            if valid_count < total_outputs:
+                if steady_state:
+                    strict_after = False
+                else:
+                    strict_before = False
+            tile_print(steady_state=steady_state, clean=(clean_before, clean_after), strict=(strict_before, strict_after), output_info=(valid_count, total_outputs))
         elif option == 'lasers':
             print(pulse_list)
         elif option == 'esc':
