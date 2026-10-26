@@ -272,14 +272,14 @@ class SOutput(SBlock):
         self.cost = cost_dict['o']
         self.buffer = buffer
         self.table = table
-        self.valid = False
+        self.valid = True
     
     def __repr__(self):
         return f'Output{*self.coordinates, tuple(self.buffer.keys()), self.table}'
     
     def update_valid(self):
         self.valid = False
-        nonecount = 0
+        delaybool = False
         result_str = ''
         for k, v in self.buffer.items():
             for block in block_coordinates.values():
@@ -290,8 +290,8 @@ class SOutput(SBlock):
                     elif bufferpop is not None:
                         result_str += '0'
                     else:  # None; happens for delay
-                        nonecount += 1
-        if nonecount > 0:
+                        delaybool = True
+        if delaybool:
             self.valid = True  # outputs are always valid during the delay period
         elif result_str in self.table:
             if (self.state and '1' in self.table[result_str]) or (not self.state and '0' in self.table[result_str]):
@@ -392,6 +392,17 @@ def edge():
     return max_x, min_x, max_y, min_y
 
 
+def count_valid():
+    valid_count = 0
+    total_outputs = 0
+    for block in block_coordinates.values():
+        if type(block) is SOutput:
+            total_outputs += 1
+            if block.valid:
+                valid_count += 1
+    return valid_count, total_outputs
+
+
 def tile_print(running=True, steady_state=False, clean=(True, True), strict=(True, True), output_info=None):
     global pulse_list
     global pulse_coordinates
@@ -410,13 +421,7 @@ def tile_print(running=True, steady_state=False, clean=(True, True), strict=(Tru
         print(f"Clean: {clean[0]} before Steady State{f", {clean[1]} after" if steady_state else ""}")
         print(f"Strictly valid: {strict[0]} before Steady State{f", {strict[1]} after" if steady_state else ""}")
         if output_info is None:
-            valid_count = 0
-            total_outputs = 0
-            for block in block_coordinates.values():
-                if type(block) is SOutput:
-                    total_outputs += 1
-                    if block.valid:
-                        valid_count += 1
+            valid_count, total_outputs = count_valid()
         else:
             valid_count, total_outputs = output_info
         print(f"{valid_count}/{total_outputs} valid outputs")
@@ -734,7 +739,6 @@ def run_solution():
             new_pulse_coordinates = {}
             # Append to new lists pulses that are not colliding
             max_x, min_x, max_y, min_y = edge()
-            print(max_x, max_y, min_x, min_y)
             for k, v in pulse_coordinates.items():
                 if k in block_coordinates:  # if no error, means block at coordinate, check if bridge (and related criteria)
                     block = block_coordinates[k]
@@ -800,13 +804,7 @@ def run_solution():
                     else:
                         clean_before = False
                     break
-            valid_count = 0
-            total_outputs = 0
-            for block in block_coordinates.values():
-                if type(block) is SOutput:
-                    total_outputs += 1
-                    if block.valid:
-                        valid_count += 1
+            valid_count, total_outputs = count_valid()
             if valid_count < total_outputs:
                 if steady_state:
                     strict_after = False
@@ -842,6 +840,7 @@ Challenge: create logical gates using the tools provided.''')
         if main_menu() == 'quit':
             break
         else:
-            tile_print()
+            valid, total = count_valid()
+            tile_print(strict=(valid == total, True), output_info=(valid, total))
             if run_solution() == 'quit':
                 break
