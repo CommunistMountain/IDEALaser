@@ -680,7 +680,8 @@ Other Commands:
 'blocks': Show block list
 'save': Save current setup (only saves blocks, does not save lasers)
 'load': Load block setup from a save (unsaved setups will be lost)
-'loadcom': Add blocks from a .txt file with block commands, separated by newlines. Will not overwrite existing blocks
+'loadcom': Add blocks from a .txt file with block commands, separated by newlines. Will not overwrite existing blocks.
+    There are some samples provided. You may add your own .txt files to the commands folder as well.
 'quit': Quit (usable when running solution) (unsaved setups will be lost)''')
                 elif user_input[0] == 'symbols':
                     print('''
